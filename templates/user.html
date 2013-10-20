@@ -1,0 +1,12 @@
+{% extends "default.html" %}
+{% block content %}
+
+
+<ul>
+{% for date, amount in changes %}
+    <li>{{ date }}: {{ amount }}</li>
+{% endfor %}
+</ul>
+
+
+{% endblock %}
