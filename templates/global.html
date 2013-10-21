@@ -1,25 +1,11 @@
-{% extends "default.html" %}
+{% extends "site.html" %}
 {% block content %}
+
 
 <header>
     <h1>State of the Coffee</h1>
     <h2>Current budget: {{ current_budget }}</h2>
 </header>
 
-<div class="col-lg-3">
-    <h3>Login to access personal data</h3>
-    <form role="form" method="POST" action="/">
-        {{ form.hidden_tag() }}
-        <div class="form-group">
-            <label for="username">{{ form.username.label }}</label>
-            {{ form.username(class="form-control") }}
-        </div>
-        <div class="form-group">
-            <label for="password">{{ form.password.label }}</label>
-            {{ form.password(class="form-control") }}
-        </div>
-        <button type="submit" class="btn btn-default">Submit</button>
-    </form>
-</div>
 
 {% endblock %}

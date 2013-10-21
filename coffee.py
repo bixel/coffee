@@ -4,9 +4,10 @@ from __future__ import division
 
 from datetime import datetime
 import ldap
-from wtforms import StringField, PasswordField
+from wtforms import StringField, PasswordField, BooleanField
+import json
 
-from flask import Flask, render_template, redirect, request, g, url_for
+from flask import Flask, render_template, redirect, request, g, url_for, jsonify
 from flask.ext.login import LoginManager, login_user, logout_user, current_user, login_required
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.admin import Admin
@@ -112,6 +113,7 @@ class BudgetChange(db.Model):
 class LoginForm(Form):
     username = StringField('Username')
     password = PasswordField('Password')
+    remember = BooleanField('remember', default=False)
 
 @app.before_request
 def before_request():
@@ -129,59 +131,72 @@ def budget():
         s += c.amount
     return str(s)
 
-@app.route('/budget/<username>')
-def budget_user(username):
-    user = db.session.query(User).filter_by(username=username).first()
-    s = 0
-    for c in user.consumptions:
-        s += c.amountPaid
-    for p in user.payments:
-        s += p.amount
-    return str(s)
-
 @app.route('/', methods=['GET', 'POST'])
+@login_required
 def index():
-    form = LoginForm()
     changes = db.session.query(BudgetChange).all()
     s = 0
     for c in changes:
         s += c.amount
+    return render_template("global.html", current_budget=render_euros(s))
+
+@app.route('/personal')
+@login_required
+def personal():
+    return render_template('user.html')
+
+@app.route('/personal_data.json')
+@login_required
+def personal_data():
+    data = []
+
+    for p in g.user.payments:
+        data.append((p.date, p.amount))
+    for c in g.user.consumptions:
+        data.append((c.date, c.amountPaid))
+
+    result = []
+    for (d, a) in sorted(data, key=lambda x: x[0]):
+        result.append({'date': str(d.date()), 'amount': a})
+
+    return json.dumps(result)
+
+@app.route('/global_data.csv')
+@login_required
+def global_data():
+    changes = db.session.query(BudgetChange).all()
+    amount = []
+    description = []
+    for c in changes:
+      amount.append(c.amount)
+      description.append(c.description)
+    return jsonify(amount=amount, description=description)
+
+def ldap_login(username, password, remember=False):
+    data = ldap_authenticate(username, password)
+    if data:
+        user = db.session.query(User).filter_by(username=username).first()
+        if not user:
+            user = User(username=username)
+        user.name = data['cn']
+        user.email = data['mail']
+        login_user(user, remember=remember)
+        return True
+    else:
+        return False
+
+@app.route("/login", methods=['GET', 'POST'])
+def login():
+    form = LoginForm()
     if form.validate_on_submit():
         username = form.username.data
         password = form.password.data
+        remember = form.remember.data
         user = db.session.query(User).filter_by(username=username).first()
-        login_user(user)
-        #ldap_login(username, password)
-        return redirect(url_for("personal"))
-    return render_template("global.html", form=form, current_budget=render_euros(s))
-
-@app.route('/personal')
-def personal():
-    if g.user is not None and g.user.is_authenticated():
-        data = dict()
-
-        for p in g.user.payments:
-            data[str(p.date.date())] = render_euros(p.amount)
-        for c in g.user.consumptions:
-            data[str(c.date.date())] = render_euros(c.amountPaid)
-
-        changes = []
-        for k in sorted(data):
-            changes.append((k, data[k]))
-
-        return render_template('user.html', changes=changes)
-    else:
+        if not ldap_login(username, password, remember=remember):
+            return '<h1>Login failed</h1>'
         return redirect(url_for('index'))
-
-#def ldap_login(username, password):
-#    if is_in_ldap(username) and authenticate(username, password):
-#        user = db.session.query(User).filter_by(username=username).first()
-#        if user:
-#            login_user(user)
-#        else:
-#            user = User(username=username, email=...)
-#        login_user(user)
-#        return True
+    return render_template('login.html', form=form)
 
 @app.route("/logout")
 def logout():
@@ -193,9 +208,26 @@ def render_euros(num):
     cents = num % 100
     return (u'€ {}.{}'.format(euros, cents))
 
+def ldap_authenticate(username, password):
+    ldap_server='e5pc51.physik.tu-dortmund.de'
+    base_dn = "cn=users,dc=e5,dc=physik,dc=uni-dortmund,dc=de"
+    connect = ldap.open(ldap_server)
+    search_filter = "uid=" + username
+    try:
+        connect.bind_s('uid=' + username +',' + base_dn, password)
+        result = connect.search_s(base_dn, ldap.SCOPE_SUBTREE, search_filter)
+        connect.unbind_s()
+        data = result[0][1]
+        return data
+    except ldap.LDAPError:
+        connect.unbind_s()
+        return None
+
 admin.add_view(ModelView(User, db.session))
 admin.add_view(ModelView(Payment, db.session))
 admin.add_view(ModelView(Consumption, db.session))
 
+login_manager.login_view = 'login'
+
 if __name__ == '__main__':
-    app.run()
+    app.run(host='')
