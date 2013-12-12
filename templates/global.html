@@ -5,6 +5,11 @@
 <header>
     <h1>State of the Coffee</h1>
     <h2>Current budget: {{ current_budget }}</h2>
+    <h2>Current coffee price: {{ coffee_price }}</h2>
+    <div id='global_graph'></div>
+    <script>
+      draw_graph('/global_data.json', '#global_graph')
+    </script>
 </header>
 
 

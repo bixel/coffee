@@ -4,14 +4,12 @@ from __future__ import division
 
 from datetime import datetime
 import ldap
-from wtforms import StringField, PasswordField, BooleanField
+from wtforms import StringField, PasswordField, BooleanField, IntegerField, SelectField
 import json
 
-from flask import Flask, render_template, redirect, request, g, url_for, jsonify
+from flask import Flask, render_template, redirect, request, g, url_for, jsonify, abort
 from flask.ext.login import LoginManager, login_user, logout_user, current_user, login_required
 from flask.ext.sqlalchemy import SQLAlchemy
-from flask.ext.admin import Admin
-from flask.ext.admin.contrib.sqlamodel import ModelView
 from flask.ext.wtf import Form
 
 app = Flask(__name__)
@@ -20,7 +18,6 @@ app.config.from_object('config')
 app.config.from_envvar('COFFEE_SETTINGS', silent=True)
 
 db = SQLAlchemy(app)
-admin = Admin(app)
 login_manager.init_app(app)
 
 def init_db():
@@ -85,7 +82,7 @@ class Consumption(db.Model):
         if units:
             self.units = units
         if not amountPaid:
-            self.amountPaid = units * app.config['COFFEE_PRICE']
+            self.amountPaid = -units * app.config['COFFEE_PRICE']
         else:
             self.amountPaid = amountPaid
         if not date:
@@ -100,12 +97,17 @@ class BudgetChange(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     amount = db.Column(db.Integer)
     description = db.Column(db.String(200))
+    date = db.Column(db.DateTime)
 
-    def __init__(self, amount=None, description=None):
+    def __init__(self, amount=None, description=None, date=None):
         if amount:
             self.amount = amount
         if description:
             self.description = description
+        if not date:
+            self.date = datetime.utcnow()
+        else:
+            self.date = date
 
     def __repr__(self):
         return '<BudgetChange %r>' % self.description
@@ -114,6 +116,21 @@ class LoginForm(Form):
     username = StringField('Username')
     password = PasswordField('Password')
     remember = BooleanField('remember', default=False)
+
+class PaymentForm(Form):
+    users = sorted(db.session.query(User).all(), key=lambda x: x.name)
+    ids = map(lambda x: x.id, users)
+    names = map(lambda x: x.name, users)
+    uid = SelectField('Name', choices=zip(ids, names), coerce=int)
+    amount = IntegerField('Amount')
+
+class ConsumptionForm(Form):
+    users = sorted(db.session.query(User).all(), key=lambda x: x.name)
+    ids = map(lambda x: x.id, users)
+    names = map(lambda x: x.name, users)
+    uid = SelectField('Name', choices=zip(ids, names), coerce=int)
+    units = IntegerField('Units')
+
 
 @app.before_request
 def before_request():
@@ -134,16 +151,32 @@ def budget():
 @app.route('/', methods=['GET', 'POST'])
 @login_required
 def index():
+    coffee_price = app.config['COFFEE_PRICE']
     changes = db.session.query(BudgetChange).all()
     s = 0
     for c in changes:
         s += c.amount
-    return render_template("global.html", current_budget=render_euros(s))
+    return render_template("global.html", current_budget=render_euros(s), coffee_price=render_euros(coffee_price))
 
 @app.route('/personal')
 @login_required
 def personal():
-    return render_template('user.html')
+    s = 0
+
+    for p in g.user.payments:
+        s += p.amount
+    for c in g.user.consumptions:
+        s += c.amountPaid
+
+    color = ""
+    if s > 0:
+        color = "green"
+    elif s < 0:
+        color = "red" 
+
+    print(s)
+
+    return render_template('user.html', current_balance=render_euros(s), balance_color=color)
 
 @app.route('/personal_data.json')
 @login_required
@@ -161,16 +194,17 @@ def personal_data():
 
     return json.dumps(result)
 
-@app.route('/global_data.csv')
+@app.route('/global_data.json')
 @login_required
 def global_data():
     changes = db.session.query(BudgetChange).all()
-    amount = []
-    description = []
+    li = []
     for c in changes:
-      amount.append(c.amount)
-      description.append(c.description)
-    return jsonify(amount=amount, description=description)
+      li.append((str(c.date.date()), c.amount, c.description))
+    result = []
+    for l in sorted(li, key=lambda x: x[0]):
+        result.append({ 'date': l[0], 'amount': l[1], 'description': l[2] })
+    return json.dumps(result)
 
 def ldap_login(username, password, remember=False):
     data = ldap_authenticate(username, password)
@@ -187,6 +221,8 @@ def ldap_login(username, password, remember=False):
 
 @app.route("/login", methods=['GET', 'POST'])
 def login():
+    if g.user.is_authenticated():
+        return redirect(url_for('index'))
     form = LoginForm()
     if form.validate_on_submit():
         username = form.username.data
@@ -198,15 +234,59 @@ def login():
         return redirect(url_for('index'))
     return render_template('login.html', form=form)
 
+
+@app.route("/admin")
+@login_required
+def admin():
+    if g.user.username == 'ibabuschkin':
+        pform = PaymentForm()
+        cform = ConsumptionForm()
+        return render_template('admin.html', payment_form=pform, consumption_form=cform)
+    else:
+        return abort(403)
+
+@app.route("/administrate/<type>", methods=['POST'])
+@login_required
+def administrate(type):
+    if g.user.username == 'ibabuschkin':
+        pform = PaymentForm()
+        cform = ConsumptionForm()
+        if type == 'payment':
+            if pform.validate_on_submit():
+                uid = pform.uid.data
+                amount = pform.amount.data
+                user = db.session.query(User).filter_by(id=uid).first()
+                user.payments.append(Payment(amount=amount))
+                bc = BudgetChange(amount=amount, description='Payment from ' + user.name)
+                db.session.add(bc)
+                db.session.commit()
+                return redirect(url_for('admin'))
+        elif type == 'consumption':
+            if cform.validate_on_submit():
+                uid = cform.uid.data
+                units = cform.units.data
+                user = db.session.query(User).filter_by(id=uid).first()
+                user.consumptions.append(Consumption(units=units))
+                db.session.commit()
+                return redirect(url_for('admin'))
+        return ""
+    else:
+        return abort(403)
+
 @app.route("/logout")
 def logout():
     logout_user()
-    return redirect(url_for('index'))
+    return redirect(url_for('login'))
 
 def render_euros(num):
+    minus = ""
+    if num < 0:
+        num *= -1
+        minus = "-"
+
     euros = num // 100
     cents = num % 100
-    return (u'€ {}.{}'.format(euros, cents))
+    return (u'{}{}.{} €'.format(minus, euros, cents))
 
 def ldap_authenticate(username, password):
     ldap_server='e5pc51.physik.tu-dortmund.de'
@@ -222,10 +302,6 @@ def ldap_authenticate(username, password):
     except ldap.LDAPError:
         connect.unbind_s()
         return None
-
-admin.add_view(ModelView(User, db.session))
-admin.add_view(ModelView(Payment, db.session))
-admin.add_view(ModelView(Consumption, db.session))
 
 login_manager.login_view = 'login'
 

@@ -9,13 +9,14 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a class="navbar-brand" href="/">E5 coffee boy</a>
+          <a class="navbar-brand" href="/">E5 Ministry of Coffee Affairs</a>
         </div>
         <div class="collapse navbar-collapse navbar-responsive-collapse">
           <ul class="nav navbar-nav">
             {%- for endpoint, caption in [
               ('index', 'Global'),
               ('personal', 'Personal'),
+              ('admin', 'Admin'),
             ] %}
               <li{% if endpoint == request.endpoint %} class=active{% endif
               %}><a href={{ url_for(endpoint) }}>{{ caption }}</a>
