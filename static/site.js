@@ -76,7 +76,8 @@ draw_graph = function(file, id) {
 
     var line = d3.svg.line()
         .x(function(d) { return x(d.date); })
-        .y(function(d) { return y(d.amount); });
+        .y(function(d) { return y(d.amount); })
+        .interpolate("step-before");
 
     var svg = d3.select(id).append("svg")
         .attr("width", width + margin.left + margin.right)
