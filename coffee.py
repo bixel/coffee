@@ -174,8 +174,6 @@ def personal():
     elif s < 0:
         color = "red" 
 
-    print(s)
-
     return render_template('user.html', current_balance=render_euros(s), balance_color=color)
 
 @app.route('/personal_data.json')
@@ -289,9 +287,9 @@ def render_euros(num):
     return (u'{}{}.{} €'.format(minus, euros, cents))
 
 def ldap_authenticate(username, password):
-    ldap_server='e5pc51.physik.tu-dortmund.de'
-    base_dn = "cn=users,dc=e5,dc=physik,dc=uni-dortmund,dc=de"
-    connect = ldap.open(ldap_server)
+    ldap_server = app.config['LDAP_HOST']
+    base_dn = app.config['LDAP_SEARCH_BASE']
+    connect = ldap.open(ldap_server, port=app.config['LDAP_PORT'])
     search_filter = "uid=" + username
     try:
         connect.bind_s('uid=' + username +',' + base_dn, password)
@@ -299,11 +297,11 @@ def ldap_authenticate(username, password):
         connect.unbind_s()
         data = result[0][1]
         return data
-    except ldap.LDAPError:
+    except ldap.LDAPError, e:
         connect.unbind_s()
         return None
 
 login_manager.login_view = 'login'
 
 if __name__ == '__main__':
-    app.run(host='')
+    app.run(host='localhost', port=5001)
