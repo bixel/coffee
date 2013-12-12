@@ -53,10 +53,10 @@ draw_table = function(file, columns, id) {
     });
 }
 
-draw_graph = function(file, id) {
+draw_graph = function(file, id, w=400, h=400) {
     var margin = {top: 20, right: 20, bottom: 70, left: 50},
-        width = 680 - margin.left - margin.right,
-        height = 400 - margin.top - margin.bottom;
+        width = w - margin.left - margin.right,
+        height = h - margin.top - margin.bottom;
 
     var parseDate = d3.time.format("%Y-%m-%d").parse;
 
