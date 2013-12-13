@@ -236,7 +236,7 @@ def login():
     return render_template('login.html', form=form)
 
 
-@app.route("/admin")
+@app.route("/administrate/interactive")
 @login_required
 def admin():
     if g.user.username == 'ibabuschkin':
