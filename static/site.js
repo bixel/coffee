@@ -1,6 +1,6 @@
 
 
-draw_table = function(file, columns, id) {
+function draw_table(file, columns, id) {
     d3.json(file, function(data) {
 
         var table = d3.select(id).append("table").attr("class", "table table-striped"),
@@ -53,7 +53,7 @@ draw_table = function(file, columns, id) {
     });
 }
 
-draw_graph = function(file, id, w=400, h=400) {
+function draw_graph(file, id, w=400, h=400) {
     var margin = {top: 20, right: 20, bottom: 70, left: 50},
         width = w - margin.left - margin.right,
         height = h - margin.top - margin.bottom;
