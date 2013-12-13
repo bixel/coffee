@@ -53,7 +53,7 @@ function draw_table(file, columns, id) {
     });
 }
 
-function draw_graph(file, id, w=400, h=400) {
+function draw_graph(file, id, w, h) {
     var margin = {top: 20, right: 20, bottom: 70, left: 50},
         width = w - margin.left - margin.right,
         height = h - margin.top - margin.bottom;
