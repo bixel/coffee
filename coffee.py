@@ -54,6 +54,15 @@ class User(db.Model):
     def get_id(self):
         return unicode(self.id)
 
+    @property
+    def balance(self):
+        s = 0
+        for p in self.payments:
+            s += p.amount
+        for c in self.consumptions:
+            s += c.amountPaid
+        return s
+
 class Payment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     amount = db.Column(db.Integer)
@@ -161,20 +170,14 @@ def index():
 @app.route('/personal')
 @login_required
 def personal():
-    s = 0
-
-    for p in g.user.payments:
-        s += p.amount
-    for c in g.user.consumptions:
-        s += c.amountPaid
-
+    balance = g.user.balance
     color = ""
-    if s > 0:
+    if balance > 0:
         color = "green"
-    elif s < 0:
+    elif balance < 0:
         color = "red" 
 
-    return render_template('user.html', current_balance=render_euros(s), balance_color=color)
+    return render_template('user.html', current_balance=render_euros(balance), balance_color=color)
 
 @app.route('/personal_data.json')
 @login_required
