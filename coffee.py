@@ -4,7 +4,7 @@ from __future__ import division
 
 from datetime import datetime
 import ldap
-from wtforms import StringField, PasswordField, BooleanField, IntegerField, SelectField
+from wtforms import StringField, PasswordField, BooleanField, IntegerField, SelectField, TextField, DateTimeField
 import json
 
 from flask import Flask, render_template, redirect, request, g, url_for, jsonify, abort
@@ -140,6 +140,10 @@ class ConsumptionForm(Form):
     uid = SelectField('Name', choices=zip(ids, names), coerce=int)
     units = IntegerField('Units')
 
+class ExpenseForm(Form):
+    description = TextField('Description')
+    units = IntegerField('Amount')
+    date = DateTimeField('Date')
 
 @app.before_request
 def before_request():
@@ -242,7 +246,8 @@ def admin():
     if g.user.username == 'ibabuschkin':
         pform = PaymentForm()
         cform = ConsumptionForm()
-        return render_template('admin.html', payment_form=pform, consumption_form=cform)
+        eform = ExpenseForm()
+        return render_template('admin.html', payment_form=pform, consumption_form=cform, expense_form=eform)
     else:
         return abort(403)
 
