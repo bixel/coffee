@@ -301,6 +301,7 @@ def ldap_authenticate(username, password):
         data = result[0][1]
         return data
     except ldap.LDAPError, e:
+        print('LDAP error: {}'.format(e))
         connect.unbind_s()
         return None
 
