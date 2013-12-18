@@ -239,6 +239,21 @@ def login():
         return redirect(url_for('index'))
     return render_template('login.html', form=form)
 
+def get_listofshame():
+    users = db.session.query(User).all()
+    entries = []
+    for u in users:
+        s = 0
+        for p in u.payments:
+            s += p.amount
+        for c in u.consumptions:
+            s += c.amountPaid
+        entries.append((u.name, s))
+    li = sorted(entries, key=lambda e: e[1])
+    res = []
+    for l in li:
+        res.append("%s: %s" % (l[0], render_euros(l[1])))
+    return res
 
 @app.route("/administrate/interactive")
 @login_required
@@ -247,7 +262,8 @@ def admin():
         pform = PaymentForm()
         cform = ConsumptionForm()
         eform = ExpenseForm()
-        return render_template('admin.html', payment_form=pform, consumption_form=cform, expense_form=eform)
+        listofshame = get_listofshame()
+        return render_template('admin.html', payment_form=pform, consumption_form=cform, expense_form=eform, list_of_shame=listofshame)
     else:
         return abort(403)
 
