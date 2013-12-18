@@ -23,11 +23,11 @@
 
 <div class="container">
     <form method="POST" action="/administrate/expenses" class="form-signin">
-        {{ expenses_form.hidden_tag() }}
+        {{ expense_form.hidden_tag() }}
         <h2 class="form-signin-heading">Add consumption</h2>
-            {{ expenses_form.description(class="form-control", placeholder="Description") }}
-            {{ expenses_form.amount(class="form-control", placeholder="Amount") }}
-            {{ expenses_form.date(class="form-control", placeholder="Date") }}
+            {{ expense_form.description(class="form-control", placeholder="Description") }}
+            {{ expense_form.amount(class="form-control", placeholder="Amount") }}
+            {{ expense_form.date(class="form-control", placeholder="Date") }}
         <button class="btn btn-lg btn-primary btn-block" type="submit">Submit</button>
     </form>
 </div>

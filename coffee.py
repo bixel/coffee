@@ -142,7 +142,7 @@ class ConsumptionForm(Form):
 
 class ExpenseForm(Form):
     description = TextField('Description')
-    units = IntegerField('Amount')
+    amount = IntegerField('Amount')
     date = DateTimeField('Date')
 
 @app.before_request
