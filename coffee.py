@@ -11,6 +11,7 @@ from flask import Flask, render_template, redirect, request, g, url_for, jsonify
 from flask.ext.login import LoginManager, login_user, logout_user, current_user, login_required
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.wtf import Form
+from flask.ext.mail import Mail, Message
 
 app = Flask(__name__)
 login_manager = LoginManager()
@@ -19,6 +20,9 @@ app.config.from_envvar('COFFEE_SETTINGS', silent=True)
 
 db = SQLAlchemy(app)
 login_manager.init_app(app)
+
+mail = Mail()
+mail.init_app(app)
 
 def init_db():
     db.create_all()
@@ -217,8 +221,9 @@ def ldap_login(username, password, remember=False):
         user = db.session.query(User).filter_by(username=username).first()
         if not user:
             user = User(username=username)
-        user.name = data['cn']
-        user.email = data['mail']
+        user.name = data['cn'][0]
+        user.email = data['mail'][0]
+        db.session.commit()
         login_user(user, remember=remember)
         return True
     else:
@@ -243,12 +248,7 @@ def get_listofshame():
     users = db.session.query(User).all()
     entries = []
     for u in users:
-        s = 0
-        for p in u.payments:
-            s += p.amount
-        for c in u.consumptions:
-            s += c.amountPaid
-        entries.append((u.name, s))
+        entries.append((u.name, u.balance))
     li = sorted(entries, key=lambda e: e[1])
     res = []
     for l in li:
@@ -267,31 +267,41 @@ def admin():
     else:
         return abort(403)
 
-@app.route("/administrate/<type>", methods=['POST'])
+@app.route("/administrate/payment", methods=['POST'])
 @login_required
-def administrate(type):
+def administrate_payment():
     if g.user.username == 'ibabuschkin':
         pform = PaymentForm()
+        if pform.validate_on_submit():
+            uid = pform.uid.data
+            amount = pform.amount.data
+            user = db.session.query(User).filter_by(id=uid).first()
+            user.payments.append(Payment(amount=amount))
+            bc = BudgetChange(amount=amount, description='Payment from ' + user.name)
+            db.session.add(bc)
+            db.session.commit()
+            if user.email:
+                msg = Message(u"[Kaffeeministerium] Einzahlung von %s" % render_euros(amount))
+                msg.add_recipient(user.email)
+                msg.body = render_template('coffee_mail', amount=render_euros(amount), recipient=user.name, balance=render_euros(user.balance))
+                mail.send(msg)
+
+            return redirect(url_for('admin'))
+    else:
+        return abort(403)
+
+@app.route("/administrate/consumption", methods=['POST'])
+@login_required
+def administrate_consumption(type):
+    if g.user.username == 'ibabuschkin':
         cform = ConsumptionForm()
-        if type == 'payment':
-            if pform.validate_on_submit():
-                uid = pform.uid.data
-                amount = pform.amount.data
-                user = db.session.query(User).filter_by(id=uid).first()
-                user.payments.append(Payment(amount=amount))
-                bc = BudgetChange(amount=amount, description='Payment from ' + user.name)
-                db.session.add(bc)
-                db.session.commit()
-                return redirect(url_for('admin'))
-        elif type == 'consumption':
-            if cform.validate_on_submit():
-                uid = cform.uid.data
-                units = cform.units.data
-                user = db.session.query(User).filter_by(id=uid).first()
-                user.consumptions.append(Consumption(units=units))
-                db.session.commit()
-                return redirect(url_for('admin'))
-        return ""
+        if cform.validate_on_submit():
+            uid = cform.uid.data
+            units = cform.units.data
+            user = db.session.query(User).filter_by(id=uid).first()
+            user.consumptions.append(Consumption(units=units))
+            db.session.commit()
+            return redirect(url_for('admin'))
     else:
         return abort(403)
 
@@ -308,7 +318,7 @@ def render_euros(num):
 
     euros = num // 100
     cents = num % 100
-    return (u'{}{}.{} €'.format(minus, euros, cents))
+    return (u'{}{}.{:02d} €'.format(minus, euros, cents))
 
 def ldap_authenticate(username, password):
     ldap_server = app.config['LDAP_HOST']
