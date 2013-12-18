@@ -30,7 +30,7 @@ def init_db():
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True)
-    name = db.Column(db.String(80), unique=True)
+    name = db.Column(db.Unicode(80), unique=True)
     email = db.Column(db.String(120), unique=True)
     payments = db.relationship('Payment', backref='user', lazy='dynamic')
     consumptions = db.relationship('Consumption', backref='user', lazy='dynamic')
@@ -283,7 +283,7 @@ def administrate_payment():
             if user.email:
                 msg = Message(u"[Kaffeeministerium] Einzahlung von %s" % render_euros(amount))
                 msg.add_recipient(user.email)
-                msg.body = render_template('coffee_mail', amount=render_euros(amount), recipient=user.name, balance=render_euros(user.balance))
+                msg.body = render_template('payment_mail', amount=render_euros(amount), balance=render_euros(user.balance))
                 mail.send(msg)
 
             return redirect(url_for('admin'))
@@ -292,7 +292,7 @@ def administrate_payment():
 
 @app.route("/administrate/consumption", methods=['POST'])
 @login_required
-def administrate_consumption(type):
+def administrate_consumption():
     if g.user.username == 'ibabuschkin':
         cform = ConsumptionForm()
         if cform.validate_on_submit():
@@ -301,6 +301,12 @@ def administrate_consumption(type):
             user = db.session.query(User).filter_by(id=uid).first()
             user.consumptions.append(Consumption(units=units))
             db.session.commit()
+            if user.balance < app.config['BUDGET_WARN_BELOW'] and user.email:
+                msg = Message(u"[Kaffeeministerium] Geringes Guthaben!")
+                msg.add_recipient(user.email)
+                msg.body = render_template('lowbudget_mail', balance=render_euros(user.balance))
+                mail.send(msg)
+
             return redirect(url_for('admin'))
     else:
         return abort(403)
@@ -319,6 +325,24 @@ def render_euros(num):
     euros = num // 100
     cents = num % 100
     return (u'{}{}.{:02d} €'.format(minus, euros, cents))
+
+def ldap_get(username):
+    ldap_server = app.config['LDAP_HOST']
+    base_dn = app.config['LDAP_SEARCH_BASE']
+    connect = ldap.open(ldap_server, port=app.config['LDAP_PORT'])
+    try:
+        connect.bind_s('', '')
+        result = connect.search_s(base_dn, ldap.SCOPE_SUBTREE, 'uid={}'.format(username))
+        connect.unbind_s()
+        if result:
+            data = result[0][1]
+            return data
+        else:
+            return None
+    except ldap.LDAPError, e:
+        print('LDAP error: {}'.format(e))
+        connect.unbind_s()
+        return None
 
 def ldap_authenticate(username, password):
     ldap_server = app.config['LDAP_HOST']
