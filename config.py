@@ -1,6 +1,6 @@
 
-DEBUG = True
-SECRET_KEY = 'devkey'
+DEBUG = False
+SECRET_KEY = 'p:0+\'.p)X_(p'
 SQLALCHEMY_DATABASE_URI = 'sqlite:///coffee.db'
 COFFEE_PRICE=25
 
