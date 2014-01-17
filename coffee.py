@@ -228,7 +228,10 @@ def ldap_login(username, password, remember=False):
         if not user:
             user = User(username=username)
         user.name = data['cn'][0]
-        user.email = data['mail'][0]
+        try:
+            user.email = data['mail'][0]
+        except KeyError:
+            pass
         db.session.commit()
         login_user(user, remember=remember)
         return True
@@ -351,6 +354,7 @@ def ldap_get(username):
         return None
 
 def ldap_authenticate(username, password):
+    print('Trying to authenticate {}'.format(username))
     ldap_server = app.config['LDAP_HOST']
     base_dn = app.config['LDAP_SEARCH_BASE']
     connect = ldap.open(ldap_server, port=app.config['LDAP_PORT'])
