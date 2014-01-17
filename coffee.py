@@ -179,7 +179,7 @@ def index():
     for c in credits:
         credit -= c.balance
 
-    return render_template("global.html", current_budget=render_euros(s), actual_budget=render_euros(s - credit), coffee_price=render_euros(coffee_price))
+    return render_template("global.html", current_budget=render_euros(s), actual_budget=render_euros(s + credit), coffee_price=render_euros(coffee_price))
 
 @app.route('/personal')
 @login_required
