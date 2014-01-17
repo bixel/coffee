@@ -170,10 +170,16 @@ def budget():
 def index():
     coffee_price = app.config['COFFEE_PRICE']
     changes = db.session.query(BudgetChange).all()
+    credits = db.session.query(User).all()
+
     s = 0
+    credit = 0
     for c in changes:
         s += c.amount
-    return render_template("global.html", current_budget=render_euros(s), coffee_price=render_euros(coffee_price))
+    for c in credits:
+        credit -= c.balance
+
+    return render_template("global.html", current_budget=render_euros(s), actual_budget=render_euros(s - credit), coffee_price=render_euros(coffee_price))
 
 @app.route('/personal')
 @login_required
