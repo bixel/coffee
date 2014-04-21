@@ -2,7 +2,7 @@
 DEBUG = False
 SECRET_KEY = 'p:0+\'.p)X_(p'
 SQLALCHEMY_DATABASE_URI = 'sqlite:///coffee.db'
-COFFEE_PRICE=25
+COFFEE_PRICE=30
 
 LDAP_HOST = 'localhost'
 LDAP_DOMAIN = 'e5pc51.physik.tu-dortmund.de'

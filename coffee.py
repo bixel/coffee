@@ -231,7 +231,7 @@ def ldap_login(username, password, remember=False):
         try:
             user.email = data['mail'][0]
         except KeyError:
-            pass
+            print('A user has no mail entry in LDAP!')
         db.session.commit()
         login_user(user, remember=remember)
         return True
