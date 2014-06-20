@@ -12,17 +12,36 @@ from flask.ext.login import LoginManager, login_user, logout_user, current_user,
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.wtf import Form
 from flask.ext.mail import Mail, Message
+from flask.ext.admin import Admin
+from flask.ext.admin.contrib.sqla import ModelView
 
 app = Flask(__name__)
 login_manager = LoginManager()
 app.config.from_object('config')
 app.config.from_envvar('COFFEE_SETTINGS', silent=True)
+admin = Admin(app, name='coffee.babushk.in')
+
+class MyView(ModelView):
+    def __init__(self, model, session, **kwargs):
+        super(MyView, self).__init__(model, session, **kwargs)
+
+    def is_accessible(self):
+        valid = False
+        try:
+            valid = is_admin(g.user.username)
+        except:
+            pass
+        return valid
 
 db = SQLAlchemy(app)
 login_manager.init_app(app)
 
 mail = Mail()
 mail.init_app(app)
+
+def is_admin(uname):
+    if uname == 'ibabuschkin' or uname == 'tschmelzer':
+        return True
 
 def init_db():
     db.create_all()
@@ -124,6 +143,11 @@ class BudgetChange(db.Model):
 
     def __repr__(self):
         return '<BudgetChange %r>' % self.description
+
+admin.add_view(MyView(User, db.session))
+admin.add_view(MyView(Payment, db.session))
+admin.add_view(MyView(Consumption, db.session))
+admin.add_view(MyView(BudgetChange, db.session))
 
 class LoginForm(Form):
     username = StringField('Username')
@@ -267,7 +291,7 @@ def get_listofshame():
 @app.route("/administrate/interactive")
 @login_required
 def admin():
-    if g.user.username == 'ibabuschkin':
+    if is_admin(g.user.username):
         pform = PaymentForm()
         cform = ConsumptionForm()
         eform = ExpenseForm()
@@ -279,7 +303,7 @@ def admin():
 @app.route("/administrate/payment", methods=['POST'])
 @login_required
 def administrate_payment():
-    if g.user.username == 'ibabuschkin':
+    if is_admin(g.user.username):
         pform = PaymentForm()
         if pform.validate_on_submit():
             uid = pform.uid.data
@@ -302,7 +326,7 @@ def administrate_payment():
 @app.route("/administrate/consumption", methods=['POST'])
 @login_required
 def administrate_consumption():
-    if g.user.username == 'ibabuschkin':
+    if is_admin(g.user.username):
         cform = ConsumptionForm()
         if cform.validate_on_submit():
             uid = cform.uid.data
