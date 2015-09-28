@@ -1,43 +1,75 @@
 {% extends "site.html" %}
 {% block content %}
 
-<div class="container">
+<div class="row">
+  <div class="col-md-12">
+    <h2>Add ...</h2>
+  </div>
+</div>
+<div class="row">
+  <div class="col-md-4">
     <form method="POST" action="/administrate/payment" class="form-signin">
         {{ payment_form.hidden_tag() }}
-        <h2 class="form-signin-heading">Add payment</h2>
-            {{ payment_form.uid(class="form-control", placeholder="Name", autofocus=True) }}
-            {{ payment_form.amount(class="form-control", placeholder="Amount") }}
-        <button class="btn btn-lg btn-primary btn-block" type="submit">Submit</button>
+        <h3 class="form-signin-heading">Payment</h3>
+        <div class="form-group">
+          {{ payment_form.uid(class="form-control", placeholder="Name", autofocus=True) }}
+        </div>
+        <div class="form-group">
+          {{ payment_form.amount(class="form-control", placeholder="Amount") }}
+        </div>
+        <button class="btn btn-primary btn-block" type="submit">Submit</button>
     </form>
-</div>
-
-<div class="container">
+  </div>
+  <div class="col-md-4">
     <form method="POST" action="/administrate/consumption" class="form-signin">
         {{ consumption_form.hidden_tag() }}
-        <h2 class="form-signin-heading">Add consumption</h2>
-            {{ consumption_form.uid(class="form-control", placeholder="Name") }}
-            {{ consumption_form.units(class="form-control", placeholder="Units") }}
-        <button class="btn btn-lg btn-primary btn-block" type="submit">Submit</button>
+        <h3 class="form-signin-heading">Consumption</h3>
+        <div class="form-group">
+          {{ consumption_form.uid(class="form-control", placeholder="Name") }}
+        </div>
+        <div class="form-group">
+          {{ consumption_form.units(class="form-control", placeholder="Units") }}
+        </div>
+        <button class="btn btn-primary btn-block" type="submit">Submit</button>
     </form>
-</div>
-
-<div class="container">
+  </div>
+  <div class="col-md-4">
     <form method="POST" action="/administrate/expenses" class="form-signin">
         {{ expense_form.hidden_tag() }}
-        <h2 class="form-signin-heading">Add consumption</h2>
-            {{ expense_form.description(class="form-control", placeholder="Description") }}
-            {{ expense_form.amount(class="form-control", placeholder="Amount") }}
-            {{ expense_form.date(class="form-control", placeholder="Date") }}
-        <button class="btn btn-lg btn-primary btn-block" type="submit">Submit</button>
+        <h3 class="form-signin-heading">Expense</h3>
+        <div class="form-group">
+          {{ expense_form.description(class="form-control", placeholder="Description") }}
+        </div>
+        <div class="form-group">
+          {{ expense_form.amount(class="form-control", placeholder="Amount") }}
+        </div>
+        <div class="form-group">
+          {{ expense_form.date(class="form-control", placeholder="Date") }}
+        </div>
+        <button class="btn btn-primary btn-block" type="submit">Submit</button>
     </form>
+  </div>
 </div>
 
 
-<h2>List of Shame:</h2>
+<h2>List of Shame</h2>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Amount / €</th>
+      <th>Name</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for entry in list_of_shame %}
+    <tr>
+      <td>{{ '%2.2f' % (entry.balance / 100) }}</td>
+      <td>{{ entry.name }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
 <ul>
-{% for entry in list_of_shame %}
-    <li>{{entry}}</li>
-{% endfor %}
 </ul>
 
 {% endblock %}

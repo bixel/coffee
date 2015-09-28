@@ -1,6 +1,6 @@
 # encoding: utf-8
 
-from __future__ import division
+from __future__ import division, unicode_literals
 
 from datetime import datetime
 import ldap
@@ -161,7 +161,8 @@ class LoginForm(Form):
 class PaymentForm(Form):
     users = sorted(db.session.query(User).all(), key=lambda x: x.name)
     ids = map(lambda x: x.id, users)
-    names = map(lambda x: x.name, users)
+    names = map(lambda x: '{}{}'.format(x.name, (' ✉️' if x.email else '')),
+                users)
     uid = SelectField('Name', choices=zip(ids, names), coerce=int)
     amount = IntegerField('Amount')
 
@@ -169,7 +170,8 @@ class PaymentForm(Form):
 class ConsumptionForm(Form):
     users = sorted(db.session.query(User).all(), key=lambda x: x.name)
     ids = map(lambda x: x.id, users)
-    names = map(lambda x: x.name, users)
+    names = map(lambda x: '{}{}'.format(x.name, (' ✉️' if x.email else '')),
+                users)
     uid = SelectField('Name', choices=zip(ids, names), coerce=int)
     units = IntegerField('Units')
 
@@ -300,12 +302,9 @@ def get_listofshame():
     users = db.session.query(User).all()
     entries = []
     for u in users:
-        entries.append((u.name, u.balance))
-    li = sorted(entries, key=lambda e: e[1])
-    res = []
-    for l in li:
-        res.append("%s: %s" % (l[0], render_euros(l[1])))
-    return res
+        entries.append({'name': u.name, 'balance': u.balance})
+    li = sorted(entries, key=lambda e: e['balance'])
+    return li
 
 
 @app.route("/administrate/interactive")
