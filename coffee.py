@@ -93,6 +93,8 @@ class Payment(db.Model):
     amount = db.Column(db.Integer)
     date = db.Column(db.DateTime)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    budgetChanges = db.relationship('BudgetChange', backref='Payment',
+                                    lazy='dynamic')
 
     def __init__(self, amount=None, date=None):
         if amount:
@@ -134,6 +136,7 @@ class BudgetChange(db.Model):
     amount = db.Column(db.Integer)
     description = db.Column(db.String(200))
     date = db.Column(db.DateTime)
+    payment_id = db.Column(db.Integer, db.ForeignKey('payment.id'))
 
     def __init__(self, amount=None, description=None, date=None):
         if amount:
@@ -329,9 +332,11 @@ def administrate_payment():
             uid = pform.uid.data
             amount = pform.amount.data
             user = db.session.query(User).filter_by(id=uid).first()
-            user.payments.append(Payment(amount=amount))
+            payment = Payment(amount=amount)
+            user.payments.append(payment)
             bc = BudgetChange(amount=amount,
                               description='Payment from ' + user.name)
+            payment.budgetChanges.append(bc)
             db.session.add(bc)
             db.session.commit()
             if user.email:
