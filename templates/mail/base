@@ -1,18 +1,8 @@
-
 Sehr geehrtes Lehrstuhlmitglied,
-
-vielen Dank für Ihre Einzahlung von
-
-      {{amount}}.
-
-Ihr jetziges Guthaben beträgt
-
-      {{balance}}.
-
+{% block body %}
+{% endblock %}
 Das Kaffeeministerium
 
 Dies ist eine automatisch generierte Mail.
 Aktuelle Informationen finden Sie unter https://coffee.babushk.in/
-Der jetzige Kaffeeminister ist Timon Schmelzer.
-
-
+Der jetzige Kaffeeminister ist Kevin Heinicke.

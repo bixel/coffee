@@ -1,0 +1,12 @@
+{% extends 'mail/base' %}
+{% block body %}
+
+vielen Dank für Ihre Einzahlung von
+
+      {{amount}}.
+
+Ihr jetziges Guthaben beträgt
+
+      {{balance}}.
+
+{% endblock %}

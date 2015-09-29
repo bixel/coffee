@@ -1,0 +1,11 @@
+{% extends 'mail/base' %}
+{% block body %}
+
+nach der neuesten Abrechnung verfügen Sie über ein geringes
+Kaffee-Budget von
+
+      {{balance}}.
+
+Bitte zahlen Sie bei der nächsten Gelegenheit auf Ihr Kaffee-Konto ein.
+
+{% endblock %}

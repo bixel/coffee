@@ -371,7 +371,7 @@ def administrate_payment():
                 msg = Message(u"[Kaffeeministerium] Einzahlung von %s"
                               % render_euros(amount))
                 msg.add_recipient(user.email)
-                msg.body = render_template('payment_mail',
+                msg.body = render_template('mail/payment',
                                            amount=render_euros(amount),
                                            balance=render_euros(user.balance))
                 mail.send(msg)
@@ -395,7 +395,7 @@ def administrate_consumption():
             if user.balance < app.config['BUDGET_WARN_BELOW'] and user.email:
                 msg = Message(u"[Kaffeeministerium] Geringes Guthaben!")
                 msg.add_recipient(user.email)
-                msg.body = render_template('lowbudget_mail',
+                msg.body = render_template('mail/lowbudget',
                                            balance=render_euros(user.balance))
                 mail.send(msg)
 
