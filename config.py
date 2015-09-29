@@ -4,10 +4,9 @@ SECRET_KEY = 'p:0+\'.p)X_(p'
 SQLALCHEMY_DATABASE_URI = 'sqlite:///coffee.db'
 COFFEE_PRICE = 30
 
-LDAP_HOST = 'localhost'
-LDAP_DOMAIN = 'localhost'
-LDAP_SEARCH_BASE = 'ou=users,dc=example,dc=com'
-LDAP_PORT = 10389
+LDAP_HOST = 'e5pc51.physik.tu-dortmund.de'
+LDAP_SEARCH_BASE = 'cn=users,dc=e5,dc=physik,dc=uni-dortmund,dc=de'
+LDAP_PORT = 389
 
 MAIL_SERVER = 'unimail.uni-dortmund.de'
 MAIL_PORT = 587
