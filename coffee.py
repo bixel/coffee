@@ -270,6 +270,7 @@ def ldap_login(username, password, remember=False):
         user = db.session.query(User).filter_by(username=username).first()
         if not user:
             user = User(username=username)
+            db.session.add(user)
         user.name = data['cn'][0]
         try:
             user.email = data['mail'][0]
