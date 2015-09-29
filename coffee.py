@@ -202,6 +202,10 @@ class ConsumptionForm(Form):
                 users)
     uid = SelectField('Name', choices=zip(ids, names), coerce=int)
     units = IntegerField('Units')
+    prices = SelectField('Price', choices=[
+                            [30, 'Kaffee 0.30€'],
+                            [50, 'Milchkaffee 0.50€'],
+                        ], coerce=int)
 
 
 class ExpenseForm(Form):
@@ -390,7 +394,9 @@ def administrate_consumption():
             uid = cform.uid.data
             units = cform.units.data
             user = db.session.query(User).filter_by(id=uid).first()
-            user.consumptions.append(Consumption(units=units))
+            price = cform.prices.data
+            user.consumptions.append(Consumption(units=units,
+                                     amountPaid=-units*price))
             db.session.commit()
             if user.balance < app.config['BUDGET_WARN_BELOW'] and user.email:
                 msg = Message(u"[Kaffeeministerium] Geringes Guthaben!")
