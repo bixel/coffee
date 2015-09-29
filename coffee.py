@@ -9,17 +9,17 @@ from wtforms import (StringField,
                      BooleanField,
                      IntegerField,
                      SelectField,
-                     TextField,
-                     DateTimeField)
+                     TextField)
+from wtforms.fields.html5 import DateField
+
 import json
 
 from flask import (Flask,
                    render_template,
                    redirect,
-                   request,
                    g,
                    url_for,
-                   jsonify,
+                   flash,
                    abort)
 from flask.ext.login import (LoginManager,
                              login_user,
@@ -207,7 +207,7 @@ class ConsumptionForm(Form):
 class ExpenseForm(Form):
     description = TextField('Description')
     amount = IntegerField('Amount')
-    date = DateTimeField('Date')
+    date = DateField('Date', default=datetime.utcnow)
 
 
 @app.before_request
@@ -400,6 +400,33 @@ def administrate_consumption():
                 mail.send(msg)
 
             return redirect(url_for('admin'))
+    else:
+        return abort(403)
+
+
+@app.route("/administrate/expenses", methods=['POST'])
+@login_required
+def administrate_expenses():
+    if is_admin(g.user.username):
+        eform = ExpenseForm()
+        if eform.validate_on_submit():
+            description = eform.description.data
+            amount = eform.amount.data
+            date = (eform.date.data
+                    if eform.date.data != ''
+                    else datetime.utcnow())
+            bc = BudgetChange(amount=amount,
+                              description=description,
+                              date=date)
+            db.session.add(bc)
+            db.session.commit()
+        else:
+            for field, errors in eform.errors.items():
+                for error in errors:
+                    flash(u'Error in the %s field - %s'
+                          % (getattr(eform, field).label.text, error))
+
+        return redirect(url_for('admin'))
     else:
         return abort(403)
 
