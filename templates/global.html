@@ -4,9 +4,25 @@
 
 <header>
     <h1>State of the Coffee</h1>
-    <h2>Actual budget: {{ current_budget }}</h2>
-    <h2>Target budget: {{ actual_budget }}</h2>
-    <h2>Current coffee price: {{ coffee_price }}</h2>
+    <table class="table">
+      <tr>
+        <td>Actual Budget</td>
+        <td>{{ current_budget }}</td>
+      </tr>
+      <tr>
+        <td>Target Budget</td>
+        <td>{{ actual_budget }}</td>
+      </tr>
+      <tr>
+        <th colspan="2">Prices</th>
+      </tr>
+      {% for price in coffee_prices %}
+      <tr>
+        <td>{{ price[1] }}</td>
+        <td>{{ price[0]|euros }}</td>
+      </tr>
+      {% endfor %}
+    </table>
     <div id='global_graph'></div>
     <script>
       draw_graph('/global_data.json', '#global_graph', 680, 400)

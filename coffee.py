@@ -14,6 +14,8 @@ from wtforms.fields.html5 import DateField
 
 import json
 
+from jinja2 import evalcontextfilter
+
 from flask import (Flask,
                    render_template,
                    redirect,
@@ -202,10 +204,8 @@ class ConsumptionForm(Form):
                 users)
     uid = SelectField('Name', choices=zip(ids, names), coerce=int)
     units = IntegerField('Units')
-    prices = SelectField('Price', choices=[
-                            [30, 'Kaffee 0.30€'],
-                            [50, 'Milchkaffee 0.50€'],
-                        ], coerce=int)
+    prices = SelectField('Price', choices=app.config['COFFEE_PRICES'],
+                         coerce=int)
 
 
 class ExpenseForm(Form):
@@ -236,7 +236,7 @@ def budget():
 @app.route('/', methods=['GET', 'POST'])
 @login_required
 def index():
-    coffee_price = app.config['COFFEE_PRICE']
+    coffee_prices = app.config['COFFEE_PRICES']
     changes = db.session.query(BudgetChange).all()
     credits = db.session.query(User).all()
 
@@ -247,9 +247,11 @@ def index():
     for c in credits:
         credit -= c.balance
 
-    return render_template("global.html", current_budget=render_euros(s),
-                           actual_budget=render_euros(s + credit),
-                           coffee_price=render_euros(coffee_price))
+    return render_template(
+        "global.html", current_budget=render_euros(s),
+        actual_budget=render_euros(s + credit),
+        coffee_prices=coffee_prices
+    )
 
 
 @app.route('/personal')
@@ -452,6 +454,12 @@ def render_euros(num):
     euros = num // 100
     cents = num % 100
     return (u'{}{}.{:02d} €'.format(minus, euros, cents))
+
+
+@app.template_filter()
+@evalcontextfilter
+def euros(eval_ctx, value):
+    return render_euros(value)
 
 
 def ldap_get(username):
