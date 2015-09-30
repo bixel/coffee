@@ -1,8 +1,12 @@
+# coding=utf-8
 
 DEBUG = True
 SECRET_KEY = 'p:0+\'.p)X_(p'
 SQLALCHEMY_DATABASE_URI = 'sqlite:///coffee.db'
-COFFEE_PRICE = 30
+COFFEE_PRICES = [
+    [30, u'Kaffee'],
+    [50, u'Milchkaffee']
+]
 
 LDAP_HOST = 'e5pc51.physik.tu-dortmund.de'
 LDAP_SEARCH_BASE = 'cn=users,dc=e5,dc=physik,dc=uni-dortmund,dc=de'
