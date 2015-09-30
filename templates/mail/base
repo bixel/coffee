@@ -4,5 +4,5 @@ Sehr geehrtes Lehrstuhlmitglied,
 Das Kaffeeministerium
 
 Dies ist eine automatisch generierte Mail.
-Aktuelle Informationen finden Sie unter https://coffee.babushk.in/
+Aktuelle Informationen finden Sie unter {{ url_for('index', _external=True) }}
 Der jetzige Kaffeeminister ist Kevin Heinicke.

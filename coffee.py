@@ -292,7 +292,7 @@ def personal_data():
         data.append((c.date, c.amountPaid))
 
     result = []
-    for (d, a) in sorted(data, key=lambda x: x[0]):
+    for (d, a) in sorted(data, key=lambda x: x[0], reverse=True):
         result.append({'date': str(d.date()), 'amount': a})
 
     return json.dumps(result)
