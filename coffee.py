@@ -78,6 +78,7 @@ class User(db.Model):
     payments = db.relationship('Payment', backref='user', lazy='dynamic')
     consumptions = db.relationship('Consumption', backref='user',
                                    lazy='dynamic')
+    services = db.relationship('Service', backref='user', lazy='dynamic')
 
     def __init__(self, name=None, username=None, email=None):
         if name:
@@ -174,6 +175,18 @@ class BudgetChange(db.Model):
 
     def __repr__(self):
         return '<BudgetChange %r>' % self.description
+
+
+class Service(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    start_date = db.Column(db.Date)
+    end_date = db.Column(db.Date)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    service_count = db.Column(db.Integer)
+
+    # def __init__(self, start=None, end=None, user_id=None, service_count=None):
+    #     self.start_date = start or datetime.utcnow()
+    #     self.end_date = end or self.start_date + 
 
 
 admin.add_view(MyView(User, db.session))
