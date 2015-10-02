@@ -2,7 +2,7 @@
 
 from __future__ import division, unicode_literals
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import ldap
 from wtforms import (StringField,
                      PasswordField,
@@ -21,6 +21,7 @@ from flask import (Flask,
                    redirect,
                    g,
                    url_for,
+                   send_from_directory,
                    flash,
                    abort)
 from flask.ext.login import (LoginManager,
@@ -34,11 +35,15 @@ from flask.ext.mail import Mail, Message
 from flask.ext.admin import Admin
 from flask.ext.admin.contrib.sqla import ModelView
 
+import codecs
+
+from subprocess import Popen
+
 app = Flask(__name__)
 login_manager = LoginManager()
 app.config.from_object('config')
 app.config.from_envvar('COFFEE_SETTINGS', silent=True)
-admin = Admin(app, name='coffee.babushk.in')
+admin = Admin(app, name='E5 MoCA DB ADMIN', template_mode='bootstrap3')
 
 
 class MyView(ModelView):
@@ -184,15 +189,22 @@ class Service(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     service_count = db.Column(db.Integer)
 
-    # def __init__(self, start=None, end=None, user_id=None, service_count=None):
-    #     self.start_date = start or datetime.utcnow()
-    #     self.end_date = end or self.start_date + 
+    def __init__(self, start=None, end=None, user_id=None, service_count=None):
+        self.start_date = start or datetime.utcnow()
+        self.end_date = end or self.start_date + timedelta(days=5)
+        self.user_id = user_id
+        self.service_count = (service_count
+                              or (self.end_date - self.start_date).days)
+
+    def __repr__(self):
+        return '<Service {} to {}>'.format(self.start_date, self.end_date)
 
 
 admin.add_view(MyView(User, db.session))
 admin.add_view(MyView(Payment, db.session))
 admin.add_view(MyView(Consumption, db.session))
 admin.add_view(MyView(BudgetChange, db.session))
+admin.add_view(MyView(Service, db.session))
 
 
 class LoginForm(Form):
@@ -450,6 +462,22 @@ def administrate_expenses():
         return redirect(url_for('admin'))
     else:
         return abort(403)
+
+
+@app.route('/administrate/service.pdf')
+@login_required
+def administrate_service_list():
+    services = db.session.query(Service).all()
+    string = render_template('service.tex', services=services)
+    with codecs.open('build/service.tex', 'w', 'utf-8') as f:
+        f.write(string)
+    p = Popen(
+        '/Library/Tex/texbin/lualatex --interaction=batchmode'
+        ' --output-directory=build build/service.tex',
+        shell=True
+    )
+    p.wait()
+    return send_from_directory('build', 'service.pdf')
 
 
 @app.route("/logout")

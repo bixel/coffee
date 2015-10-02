@@ -1,5 +1,40 @@
-\documentclass{minimal}
+\documentclass[
+    20pt
+]{article}
+
+\usepackage{polyglossia}
+\setmainlanguage{german}
+
+\usepackage[
+    a4paper,
+    left=20mm,
+    right=20mm,
+    top=20mm,
+    bottom=20mm,
+]{geometry}
 
 \begin{document}
-    HEAD
+    \pagenumbering{gobble}
+    \section*{Kaffeedienst {{ services[-1].start_date.strftime('%B %Y') }}}
+    {{ foo }}
+    Bitte täglich spülen und Uhrzeit eintragen. Wenn die Maschine darum bittet,
+    reinigen, beziehungsweise entkalken und ein Kreuzchen in der entsprechenden
+    Spalte machen.
+    \begin{table}[h!]
+        \Large
+        \begin{tabular}{l | p{1.8cm} | p{1.8cm} | p{1.8cm} | p{1.8cm} | p{1.8cm}}
+            % for begin
+            {% for service in services %}
+            \multicolumn{6}{l}{ {{ service.start_date.strftime('%d.%m.') }} -- {{ service.end_date.strftime('%d.%m.') }}} \\
+            \hline
+            \textbf{\hphantom{}{{ service.user.name }}} & Mo & Di & Mi & Do & Fr \\
+            gespült (Zeit) &    &    &    &    &    \\
+            gereinigt & \Huge\circ & \Huge\circ & \Huge\circ & \Huge\circ & \Huge\circ \\
+            entkalkt & \Huge\circ & \Huge\circ & \Huge\circ & \Huge\circ & \Huge\circ \\
+            \hline
+            \multicolumn{6}{l}{}\\[3ex]
+            {% endfor %}
+            % for end
+        \end{tabular}
+    \end{table}
 \end{document}

@@ -2,3 +2,4 @@ env/
 coffee.db
 *.db
 *.pyc
+build/
