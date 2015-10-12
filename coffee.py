@@ -1,4 +1,4 @@
-# encoding: utf-8
+# coding: utf-8
 
 from __future__ import division, unicode_literals
 
@@ -422,11 +422,16 @@ def administrate_payment():
             if user.email:
                 msg = Message(u"[Kaffeeministerium] Einzahlung von %s"
                               % render_euros(amount))
+                msg.charset = 'utf-8'
                 msg.add_recipient(user.email)
                 msg.body = render_template('mail/payment',
                                            amount=render_euros(amount),
                                            balance=render_euros(user.balance))
-                mail.send(msg)
+                if not app.config['DEBUG']:
+                    mail.send(msg)
+                else:
+                    print(u'Sending mail \n{}'.format(unicode(msg.as_string(),
+                                                              'utf-8')))
 
             return redirect(url_for('admin'))
     else:
@@ -444,14 +449,19 @@ def administrate_consumption():
             user = db.session.query(User).filter_by(id=uid).first()
             price = cform.prices.data
             user.consumptions.append(Consumption(units=units,
-                                     amountPaid=-units*price))
+                                     amountPaid=-units * price))
             db.session.commit()
             if user.balance < app.config['BUDGET_WARN_BELOW'] and user.email:
                 msg = Message(u"[Kaffeeministerium] Geringes Guthaben!")
+                msg.charset = 'utf-8'
                 msg.add_recipient(user.email)
                 msg.body = render_template('mail/lowbudget',
                                            balance=render_euros(user.balance))
-                mail.send(msg)
+                if not app.config['DEBUG']:
+                    mail.send(msg)
+                else:
+                    print(u'Sending mail \n{}'.format(unicode(msg.as_string(),
+                                                              'utf-8')))
 
             return redirect(url_for('admin'))
     else:
