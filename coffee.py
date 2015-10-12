@@ -351,7 +351,7 @@ def ldap_login(username, password, remember=False):
         if not user:
             user = User(username=username)
             db.session.add(user)
-        user.name = data['cn'][0]
+        user.name = unicode(data['cn'][0], 'utf-8')
         try:
             user.email = data['mail'][0]
         except KeyError:
