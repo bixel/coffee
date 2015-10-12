@@ -13,6 +13,7 @@ from wtforms import (StringField,
                      FormField,
                      SelectField,
                      TextField)
+from wtforms import Form as NoCsrfForm
 from wtforms.fields.html5 import DateField
 
 import json
@@ -226,27 +227,20 @@ class PaymentForm(Form):
     amount = IntegerField('Amount')
 
 
-class ConsumptionFormBase(Form):
+class ConsumptionForm(Form):
     users = sorted(db.session.query(User).all(), key=lambda x: x.name)
     ids = map(lambda x: x.id, users)
     names = map(lambda x: '{}{}'.format(x.name, (' ✉️' if x.email else '')),
                 users)
-
-
-class ConsumptionForm(ConsumptionFormBase):
-    uid = SelectField(
-        'Name',
-        choices=zip(ConsumptionFormBase.ids, ConsumptionFormBase.names),
-        coerce=int
-    )
+    uid = SelectField('Name', choices=zip(ids, names), coerce=int)
     units = IntegerField('Units')
     prices = SelectField('Price', choices=app.config['COFFEE_PRICES'],
                          coerce=int)
 
 
-class ConsumptionSingleForm(Form):
-    user = HiddenField()
-    consumptions = FieldList(IntegerField('consumption'),
+class ConsumptionSingleForm(NoCsrfForm):
+    user = HiddenField('uid')
+    consumptions = FieldList(IntegerField('consumption', default=0),
                              min_entries=len(app.config['COFFEE_PRICES']))
 
 
@@ -468,6 +462,18 @@ def administrate_consumption():
         return abort(403)
 
 
+def warning_mail(user):
+    msg = Message(u"[Kaffeeministerium] Geringes Guthaben!")
+    msg.charset = 'utf-8'
+    msg.add_recipient(user.email)
+    msg.body = render_template('mail/lowbudget',
+                               balance=render_euros(user.balance))
+    if not app.config['DEBUG']:
+        mail.send(msg)
+    else:
+        print(u'Sending mail \n{}'.format(unicode(msg.as_string(), 'utf-8')))
+
+
 @app.route('/administrate/consumption/list', methods=['POST', 'GET'])
 @login_required
 def administrate_consumtion_list():
@@ -475,11 +481,30 @@ def administrate_consumtion_list():
         form = ConsumptionListForm()
         if request.method == 'POST':
             if form.validate_on_submit():
-                ids = form.uids.data
-                units = form.units.data
-                prices = form.prices.data
-                print(ids, units, prices)
+                for f in form.users.entries:
+                    notify = False
+                    user = User.query.get(f.user.data)
+                    for units, price in zip(f.consumptions.data,
+                                            app.config['COFFEE_PRICES']):
+                        if units > 0:
+                            user.consumptions.append(Consumption(
+                                units=units,
+                                amountPaid=-units * price[0]
+                            ))
+                            print('Consume added for {}'.format(user.name))
+                            notify = True
+                    if (notify and user.email and user.balance
+                            < app.config['BUDGET_WARN_BELOW']):
+                        warning_mail(user)
+                db.session.commit()
+            else:
+                print(form.errors)
+            return redirect(url_for('administrate_consumtion_list'))
         else:
+            for u in sorted(User.query.all(), key=lambda x: x.name):
+                form.users.append_entry()
+                form.users.entries[-1].user.data = u.id
+                form.users.entries[-1].consumptions.label = u.name
             return render_template('consumption_list.html', form=form)
     else:
         return abort(403)

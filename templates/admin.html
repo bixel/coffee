@@ -23,7 +23,7 @@
   <div class="col-md-4">
     <form method="POST" action="/administrate/consumption" class="form-signin">
         {{ consumption_form.hidden_tag() }}
-        <h3 class="form-signin-heading">Consumption</h3>
+        <h3 class="form-signin-heading">Consumption <small><a href="{{ url_for("administrate_consumtion_list") }}">multi</a></small></h3>
         <div class="form-group">
           {{ consumption_form.uid(class="form-control", placeholder="Name") }}
         </div>
