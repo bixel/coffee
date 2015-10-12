@@ -8,6 +8,9 @@ from wtforms import (StringField,
                      PasswordField,
                      BooleanField,
                      IntegerField,
+                     HiddenField,
+                     FieldList,
+                     FormField,
                      SelectField,
                      TextField)
 from wtforms.fields.html5 import DateField
@@ -21,6 +24,7 @@ from flask import (Flask,
                    redirect,
                    g,
                    url_for,
+                   request,
                    send_from_directory,
                    flash,
                    abort)
@@ -222,15 +226,32 @@ class PaymentForm(Form):
     amount = IntegerField('Amount')
 
 
-class ConsumptionForm(Form):
+class ConsumptionFormBase(Form):
     users = sorted(db.session.query(User).all(), key=lambda x: x.name)
     ids = map(lambda x: x.id, users)
     names = map(lambda x: '{}{}'.format(x.name, (' ✉️' if x.email else '')),
                 users)
-    uid = SelectField('Name', choices=zip(ids, names), coerce=int)
+
+
+class ConsumptionForm(ConsumptionFormBase):
+    uid = SelectField(
+        'Name',
+        choices=zip(ConsumptionFormBase.ids, ConsumptionFormBase.names),
+        coerce=int
+    )
     units = IntegerField('Units')
     prices = SelectField('Price', choices=app.config['COFFEE_PRICES'],
                          coerce=int)
+
+
+class ConsumptionSingleForm(Form):
+    user = HiddenField()
+    consumptions = FieldList(IntegerField('consumption'),
+                             min_entries=len(app.config['COFFEE_PRICES']))
+
+
+class ConsumptionListForm(Form):
+    users = FieldList(FormField(ConsumptionSingleForm))
 
 
 class ExpenseForm(Form):
@@ -433,6 +454,23 @@ def administrate_consumption():
                 mail.send(msg)
 
             return redirect(url_for('admin'))
+    else:
+        return abort(403)
+
+
+@app.route('/administrate/consumption/list', methods=['POST', 'GET'])
+@login_required
+def administrate_consumtion_list():
+    if is_admin(g.user.username):
+        form = ConsumptionListForm()
+        if request.method == 'POST':
+            if form.validate_on_submit():
+                ids = form.uids.data
+                units = form.units.data
+                prices = form.prices.data
+                print(ids, units, prices)
+        else:
+            return render_template('consumption_list.html', form=form)
     else:
         return abort(403)
 

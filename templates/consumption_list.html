@@ -1,0 +1,30 @@
+{% extends "site.html" %}
+{% block content %}
+
+<div class="row">
+  <div class="col-md-12">
+    <h2>Add Multiple Consumptions</h2>
+  </div>
+</div>
+<div class="row">
+  <div class="col-md-12">
+    {# <form method="POST" action="/administrate/consumption/list" class="form-group">
+        {{ payment_form.hidden_tag() }}
+        <h3 class="form-signin-heading">Payment</h3>
+        <div class="form-group">
+          {{ payment_form.uid(class="form-control", placeholder="Name", autofocus=True) }}
+        </div>
+        <div class="form-group">
+          {{ payment_form.amount(class="form-control", placeholder="Amount") }}
+        </div>
+        <button class="btn btn-primary btn-block" type="submit">Submit</button>
+      </form> #}
+      {% for uform in form.userforms %}
+        {{ uform.units() }}
+        {{ uform.prices() }}
+        <br>
+      {% endfor %}
+  </div>
+</div>
+
+{% endblock %}
