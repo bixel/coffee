@@ -89,6 +89,7 @@ class User(db.Model):
     consumptions = db.relationship('Consumption', backref='user',
                                    lazy='dynamic')
     services = db.relationship('Service', backref='user', lazy='dynamic')
+    active = db.Column(db.Boolean)
 
     def __init__(self, name=None, username=None, email=None):
         if name:
@@ -219,7 +220,7 @@ class LoginForm(Form):
 
 
 class PaymentForm(Form):
-    users = sorted(db.session.query(User).all(), key=lambda x: x.name)
+    users = User.query.order_by(User.name).all()
     ids = map(lambda x: x.id, users)
     names = map(lambda x: '{}{}'.format(x.name, (' ✉️' if x.email else '')),
                 users)
@@ -228,7 +229,7 @@ class PaymentForm(Form):
 
 
 class ConsumptionForm(Form):
-    users = sorted(db.session.query(User).all(), key=lambda x: x.name)
+    users = User.query.order_by(User.name).all()
     ids = map(lambda x: x.id, users)
     names = map(lambda x: '{}{}'.format(x.name, (' ✉️' if x.email else '')),
                 users)
@@ -377,8 +378,10 @@ def get_listofshame():
     users = db.session.query(User).all()
     entries = []
     for u in users:
-        entries.append({'name': u.name, 'balance': u.balance})
-    li = sorted(entries, key=lambda e: e['balance'])
+        entries.append({'name': u.name,
+                        'balance': u.balance,
+                        'active': u.active})
+    li = sorted(entries, key=lambda e: (-e['active'], e['balance']))
     return li
 
 
@@ -476,13 +479,14 @@ def warning_mail(user):
 
 @app.route('/administrate/consumption/list', methods=['POST', 'GET'])
 @login_required
-def administrate_consumtion_list():
+def administrate_consumption_list():
     if is_admin(g.user.username):
         form = ConsumptionListForm()
         if request.method == 'POST':
             if form.validate_on_submit():
                 for f in form.users.entries:
                     notify = False
+                    active = False
                     user = User.query.get(f.user.data)
                     for units, price in zip(f.consumptions.data,
                                             app.config['COFFEE_PRICES']):
@@ -493,15 +497,18 @@ def administrate_consumtion_list():
                             ))
                             print('Consume added for {}'.format(user.name))
                             notify = True
+                            active = True
                     if (notify and user.email and user.balance
                             < app.config['BUDGET_WARN_BELOW']):
                         warning_mail(user)
+                    user.active = active
                 db.session.commit()
             else:
                 print(form.errors)
-            return redirect(url_for('administrate_consumtion_list'))
+            return redirect(url_for('administrate_consumption_list'))
         else:
-            for u in sorted(User.query.all(), key=lambda x: x.name):
+            users = User.query.order_by(User.active.desc(), User.name).all()
+            for u in users:
                 form.users.append_entry()
                 form.users.entries[-1].user.data = u.id
                 form.users.entries[-1].consumptions.label = u.name
