@@ -1,6 +1,20 @@
 {% extends "site.html" %}
-{% block content %}
 
+{% block admin_navbar %}
+<li><a href="#"
+       class="dropdown-toggle"
+       data-toggle="dropdown"
+       role="button"
+       aria-haspopup="true"
+       aria-expanded="false"><span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu">
+    <li><a href="/admin">Adminpanel</a>
+    <li><a href="{{ url_for("administrate_consumption_list") }}">Consumelist</a>
+  </ul>
+{% endblock %}
+
+{% block content %}
 <div class="row">
   <div class="col-md-12">
     <h2>Add ...</h2>
@@ -23,7 +37,7 @@
   <div class="col-md-4">
     <form method="POST" action="/administrate/consumption" class="form-signin">
         {{ consumption_form.hidden_tag() }}
-        <h3 class="form-signin-heading">Consumption <small><a href="{{ url_for("administrate_consumtion_list") }}">multi</a></small></h3>
+        <h3 class="form-signin-heading">Consumption</h3>
         <div class="form-group">
           {{ consumption_form.uid(class="form-control", placeholder="Name") }}
         </div>
@@ -74,5 +88,4 @@
 </table>
 <ul>
 </ul>
-
 {% endblock %}

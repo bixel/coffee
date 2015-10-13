@@ -1,6 +1,6 @@
-{% extends "site.html" %}
-{% block content %}
+{% extends "admin.html" %}
 
+{% block content %}
 <div class="row">
   <div class="col-md-12">
     <h2>Add Multiple Consumptions</h2>
@@ -8,7 +8,7 @@
 </div>
 <div class="row">
   <div class="col-md-12">
-    <form method="POST" action="{{ url_for('administrate_consumtion_list') }}" class="form-horizontal">
+    <form method="POST" action="{{ url_for('administrate_consumption_list') }}" class="form-horizontal">
       {{ form.hidden_tag() }}
       {% for uform in form.users %}
       <div class="row form-group">
@@ -29,5 +29,4 @@
     </form>
   </div>
 </div>
-
 {% endblock %}

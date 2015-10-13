@@ -20,6 +20,8 @@
               <li{% if endpoint == request.endpoint %} class=active{% endif
               %}><a href={{ url_for(endpoint) }}>{{ caption }}</a>
             {%- endfor %}
+            {% block admin_navbar %}
+            {% endblock %}
           </ul>
           <a href="/logout" class="btn btn-default navbar-btn pull-right">Logout</a>
         </div><!--/.nav-collapse -->
