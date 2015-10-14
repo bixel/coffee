@@ -44,6 +44,8 @@ import codecs
 
 from subprocess import Popen
 
+from sqlalchemy import func
+
 app = Flask(__name__)
 login_manager = LoginManager()
 app.config.from_object('config')
@@ -122,6 +124,10 @@ class User(db.Model):
         for c in self.consumptions:
             s += c.amountPaid
         return s
+
+    @property
+    def total_consumption(self):
+        return self.consumptions(func.sum(Consumption.units)).scalar()
 
 
 class Payment(db.Model):
