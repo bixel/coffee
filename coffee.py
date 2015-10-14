@@ -499,11 +499,11 @@ def administrate_consumption_list():
                             print('Consume added for {}'.format(user.name))
                             notify = True
                             active = True
+                    db.session.commit()
                     if (notify and user.email and user.balance
                             < app.config['BUDGET_WARN_BELOW']):
                         warning_mail(user)
                     user.active = active
-                db.session.commit()
             else:
                 print(form.errors)
             return redirect(url_for('administrate_consumption_list'))
@@ -564,11 +564,14 @@ def administrate_service_list():
 @app.route('/administrate/list.pdf')
 @login_required
 def administrate_list():
-    users = User.query.order_by(User.name)
+    users = User.query.filter(User.active).order_by(User.name).all()
     for u in users:
-        consumptions = sorted(u.consumptions.all(), lambda x: x.date)
-        if (datetime.utcnow - consumptions[-1].date) > timedelta(42):
-            # foo
+        consumptions = sorted(u.consumptions.all(), key=lambda x: x.date)
+        if (consumptions and (
+                datetime.utcnow() - consumptions[-1].date) > timedelta(90)):
+            u.active = False
+            users.remove(u)
+    db.session.commit()
     string = render_template('list.tex',
                              current_date=datetime.utcnow(),
                              users=users,
