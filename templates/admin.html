@@ -41,12 +41,11 @@
         <div class="form-group">
           {{ consumption_form.uid(class="form-control", placeholder="Name") }}
         </div>
+        {% for u in consumption_form.units %}
         <div class="form-group">
-          {{ consumption_form.units(class="form-control", placeholder="Units") }}
+          {{ u(class="form-control", placeholder=u.label) }}
         </div>
-        <div class="form-group">
-          {{ consumption_form.prices(class="form-control", placeholder="Prices") }}
-        </div>
+        {% endfor %}
         <button class="btn btn-primary btn-block" type="submit">Submit</button>
     </form>
   </div>

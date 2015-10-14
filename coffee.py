@@ -234,9 +234,7 @@ class ConsumptionForm(Form):
     names = map(lambda x: '{}{}'.format(x.name, (' ✉️' if x.email else '')),
                 users)
     uid = SelectField('Name', choices=zip(ids, names), coerce=int)
-    units = IntegerField('Units')
-    prices = SelectField('Price', choices=app.config['COFFEE_PRICES'],
-                         coerce=int)
+    units = FieldList(IntegerField('Units'))
 
 
 class ConsumptionSingleForm(NoCsrfForm):
@@ -391,6 +389,9 @@ def admin():
     if is_admin(g.user.username):
         pform = PaymentForm()
         cform = ConsumptionForm()
+        for price, title in app.config['COFFEE_PRICES']:
+            cform.units.append_entry()
+            cform.units[-1].label = title
         eform = ExpenseForm()
         listofshame = get_listofshame()
         return render_template('admin.html', payment_form=pform,
@@ -442,11 +443,11 @@ def administrate_consumption():
         cform = ConsumptionForm()
         if cform.validate_on_submit():
             uid = cform.uid.data
-            units = cform.units.data
             user = db.session.query(User).filter_by(id=uid).first()
-            price = cform.prices.data
-            user.consumptions.append(Consumption(units=units,
-                                     amountPaid=-units * price))
+            user.active = True
+            for u, c in zip(cform.units.data, app.config['COFFEE_PRICES']):
+                user.consumptions.append(Consumption(units=u,
+                                         amountPaid=-u * c[0]))
             db.session.commit()
             if user.balance < app.config['BUDGET_WARN_BELOW'] and user.email:
                 msg = Message(u"[Kaffeeministerium] Geringes Guthaben!")
@@ -563,8 +564,11 @@ def administrate_service_list():
 @app.route('/administrate/list.pdf')
 @login_required
 def administrate_list():
-    users = User.query.filter(User.active).order_by(User.name)
-    print([u for u in users])
+    users = User.query.order_by(User.name)
+    for u in users:
+        consumptions = sorted(u.consumptions.all(), lambda x: x.date)
+        if (datetime.utcnow - consumptions[-1].date) > timedelta(42):
+            # foo
     string = render_template('list.tex',
                              current_date=datetime.utcnow(),
                              users=users,
