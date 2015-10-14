@@ -1,6 +1,4 @@
-\documentclass[
-    14pt
-]{article}
+\documentclass{article}
 
 \usepackage{polyglossia}
 \setmainlanguage{german}
@@ -17,7 +15,6 @@
     \pagenumbering{gobble}
     \section*{Kaffeeliste ab dem {{ current_date.strftime('%d.%m.%Y') }}}
     \begin{table}[h!]
-        \small
         \begin{tabular}{| l | p{6cm} | p{6cm} |}
             \multicolumn{1}{l}{Name} & \multicolumn{1}{l}{Kaffee (30 ct)} & \multicolumn{1}{l}{Milchgetränk (50 ct)} \\
             {% for name in vip %}
@@ -25,6 +22,7 @@
             {{ name }} & & \\
             {% endfor %}
             \hline
+            \multicolumn{3}{l}{}\\
             % for begin
             {% for user in users %}
             {% if user.name not in vip %}
