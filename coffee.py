@@ -151,13 +151,10 @@ class Consumption(db.Model):
     date = db.Column(db.DateTime)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
 
-    def __init__(self, units=None, amountPaid=None, date=None):
+    def __init__(self, amountPaid, units=None, date=None):
         if units:
             self.units = units
-        if not amountPaid:
-            self.amountPaid = -units * app.config['COFFEE_PRICE']
-        else:
-            self.amountPaid = amountPaid
+        self.amountPaid = amountPaid
         if not date:
             self.date = datetime.utcnow()
         else:
@@ -462,6 +459,8 @@ def administrate_consumption():
                                                               'utf-8')))
 
             return redirect(url_for('admin'))
+        else:
+            return 'Form not valid'
     else:
         return abort(403)
 
