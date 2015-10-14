@@ -443,8 +443,9 @@ def administrate_consumption():
             user = db.session.query(User).filter_by(id=uid).first()
             user.active = True
             for u, c in zip(cform.units.data, app.config['COFFEE_PRICES']):
-                user.consumptions.append(Consumption(units=u,
-                                         amountPaid=-u * c[0]))
+                if(u > 0):
+                    user.consumptions.append(Consumption(units=u,
+                                             amountPaid=-u * c[0]))
             db.session.commit()
             if user.balance < app.config['BUDGET_WARN_BELOW'] and user.email:
                 msg = Message(u"[Kaffeeministerium] Geringes Guthaben!")
