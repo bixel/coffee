@@ -1,0 +1,39 @@
+\documentclass[
+    14pt
+]{article}
+
+\usepackage{polyglossia}
+\setmainlanguage{german}
+
+\usepackage[
+    a4paper,
+    left=20mm,
+    right=20mm,
+    top=5mm,
+    bottom=5mm,
+]{geometry}
+
+\begin{document}
+    \pagenumbering{gobble}
+    \section*{Kaffeeliste ab dem {{ current_date.strftime('%d.%m.%Y') }}}
+    \begin{table}[h!]
+        \small
+        \begin{tabular}{| l | p{6cm} | p{6cm} |}
+            \multicolumn{1}{l}{Name} & \multicolumn{1}{l}{Kaffee (30 ct)} & \multicolumn{1}{l}{Milchgetränk (50 ct)} \\
+            {% for name in vip %}
+            \hline
+            {{ name }} & & \\
+            {% endfor %}
+            \hline
+            % for begin
+            {% for user in users %}
+            {% if user.name not in vip %}
+            \hline
+            {{ user.name }} & & \\
+            {% endif %}
+            {% endfor %}
+            % for end
+            \hline
+        \end{tabular}
+    \end{table}
+\end{document}

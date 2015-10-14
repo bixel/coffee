@@ -560,6 +560,26 @@ def administrate_service_list():
     return send_from_directory('build', 'service.pdf')
 
 
+@app.route('/administrate/list.pdf')
+@login_required
+def administrate_list():
+    users = User.query.filter(User.active).order_by(User.name)
+    print([u for u in users])
+    string = render_template('list.tex',
+                             current_date=datetime.utcnow(),
+                             users=users,
+                             vip=app.config['COFFEE_VIPS'])
+    with codecs.open('build/list.tex', 'w', 'utf-8') as f:
+        f.write(string)
+    p = Popen(
+        '/Library/Tex/texbin/lualatex --interaction=batchmode'
+        ' --output-directory=build build/list.tex',
+        shell=True
+    )
+    p.wait()
+    return send_from_directory('build', 'list.pdf')
+
+
 @app.route("/logout")
 def logout():
     logout_user()
