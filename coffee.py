@@ -157,10 +157,10 @@ class Consumption(db.Model):
     date = db.Column(db.DateTime)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
 
-    def __init__(self, amountPaid, units=None, date=None):
+    def __init__(self, amountPaid=None, units=None, date=None):
         if units:
             self.units = units
-        self.amountPaid = amountPaid
+        self.amountPaid = amountPaid or 0
         if not date:
             self.date = datetime.utcnow()
         else:
