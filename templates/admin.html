@@ -76,6 +76,7 @@
     <tr>
       <th>Amount / €</th>
       <th>Name</th>
+      <th>Score</th>
     </tr>
   </thead>
   <tbody>
@@ -83,6 +84,7 @@
     <tr>
       <td>{{ '%2.2f' % (entry.balance / 100) }}</td>
       <td>{{ entry.name }}</td>
+      <td>{{ entry.score }}</td>
     </tr>
     {% endfor %}
   </tbody>

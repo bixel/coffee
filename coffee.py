@@ -45,6 +45,9 @@ import codecs
 from subprocess import Popen
 
 from sqlalchemy import func
+from sqlalchemy.sql.expression import false
+
+from math import exp
 
 app = Flask(__name__)
 login_manager = LoginManager()
@@ -92,6 +95,7 @@ class User(db.Model):
                                    lazy='dynamic')
     services = db.relationship('Service', backref='user', lazy='dynamic')
     active = db.Column(db.Boolean)
+    vip = db.Column(db.Boolean, default=False)
 
     def __init__(self, name=None, username=None, email=None):
         if name:
@@ -128,6 +132,20 @@ class User(db.Model):
     @property
     def total_consumption(self):
         return self.consumptions(func.sum(Consumption.units)).scalar()
+
+    @property
+    def score(self):
+        services = 0
+        consumptions = 1
+        now = datetime.utcnow()
+        for s in self.services:
+            timediff = now.date() - s.end_date
+            services += s.service_count * exp(-timediff.days / 365)
+        for c in self.consumptions:
+            timediff = now - c.date
+            units = c.units or 0
+            consumptions += units * exp(-timediff.days / 365)
+        return services**3 / consumptions
 
 
 class Payment(db.Model):
@@ -203,7 +221,7 @@ class Service(db.Model):
         self.end_date = end or self.start_date + timedelta(days=5)
         self.user_id = user_id
         self.service_count = (service_count
-                              or (self.end_date - self.start_date).days)
+                              or (self.end_date - self.start_date).days + 1)
 
     def __repr__(self):
         return '<Service {} to {}>'.format(self.start_date, self.end_date)
@@ -381,7 +399,8 @@ def get_listofshame():
     for u in users:
         entries.append({'name': u.name,
                         'balance': u.balance,
-                        'active': u.active})
+                        'active': u.active,
+                        'score': u.score})
     li = sorted(entries, key=lambda e: (-e['active'], e['balance']))
     return li
 
@@ -554,7 +573,7 @@ def administrate_expenses():
 @app.route('/administrate/service.pdf')
 @login_required
 def administrate_service_list():
-    services = db.session.query(Service).all()
+    services = Service.query.order_by(Service.end_date.desc())[0:5]
     string = render_template('service.tex', services=services)
     with codecs.open('build/service.tex', 'w', 'utf-8') as f:
         f.write(string)
@@ -565,6 +584,28 @@ def administrate_service_list():
     )
     p.wait()
     return send_from_directory('build', 'service.pdf')
+
+
+@app.route('/administrate/service/update/')
+@login_required
+def administrate_service_update():
+    services = []
+    users = User.query.filter(User.active, User.vip == false()).all()
+    users = sorted(users, key=lambda x: x.score)
+    last_service = Service.query.order_by(Service.end_date.desc()).first()
+    last_date = last_service.end_date
+    for u in users[0:5]:
+        s = Service(
+            start=last_date + timedelta(3),
+            end=last_date + timedelta(7),
+        )
+        services.append(s)
+        u.services.append(s)
+        last_date += timedelta(7)
+    db.session.commit()
+    return 'Services Updated: {}'.format(
+        ['{}'.format(st.user.name) for st in services]
+    )
 
 
 @app.route('/administrate/list.pdf')
