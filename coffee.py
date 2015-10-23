@@ -2,7 +2,7 @@
 
 from __future__ import division, unicode_literals
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import ldap
 from wtforms import (StringField,
                      PasswordField,
@@ -138,10 +138,14 @@ class User(db.Model):
         services = 0
         consumptions = 1
         now = datetime.utcnow()
-        for s in self.services:
+        for s in self.services.filter(
+            Service.end_date > date(*app.config['INITIAL_SCORE_DATE'])
+        ):
             timediff = now.date() - s.end_date
             services += s.service_count * exp(-timediff.days / 365)
-        for c in self.consumptions:
+        for c in self.consumptions.filter(
+            Consumption.date > datetime(*app.config['INITIAL_SCORE_DATE'])
+        ):
             timediff = now - c.date
             units = c.units or 0
             consumptions += units * exp(-timediff.days / 365)
