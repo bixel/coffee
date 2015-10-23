@@ -574,6 +574,7 @@ def administrate_expenses():
 @login_required
 def administrate_service_list():
     services = Service.query.order_by(Service.end_date.desc())[0:5]
+    services = list(reversed(services))
     string = render_template('service.tex', services=services)
     with codecs.open('build/service.tex', 'w', 'utf-8') as f:
         f.write(string)
