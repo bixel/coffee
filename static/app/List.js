@@ -46,6 +46,12 @@ export default class List extends Component {
   render(){
     const rows = this.state.users.map((user, i) => {
       const background = (i + 1) % 2 ? "#E3EBDE" : "";
+
+      // dont show the guest user for now
+      if(user.username === 'guest'){
+        return undefined;
+      }
+
       return <Row
         products={this.state.products}
         name={user.name}

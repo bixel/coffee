@@ -19,9 +19,8 @@ PORT = os.environ.get('COFFEE_PORT', 5000)
 MAIL_SERVER = 'unimail.uni-dortmund.de'
 MAIL_PORT = 587
 MAIL_USE_TLS = True
-MAIL_USERNAME = 'smigbabu'
-MAIL_PASSWORD = 'i4subpih'
-MAIL_DEFAULT_SENDER = 'igor.babuschkin@udo.edu'
+MAIL_USERNAME = os.environ.get('COFFEE_MAILUSER')
+MAIL_DEFAULT_SENDER = os.environ.get('COFFEE_MAILADDRESS')
 
 BUDGET_WARN_BELOW = 0
 

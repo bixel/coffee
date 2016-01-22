@@ -1,6 +1,4 @@
-# coding: utf-8
-
-from __future__ import division, unicode_literals
+from functools import wraps
 
 from datetime import datetime, timedelta
 from ldap3 import Server, Connection
@@ -98,6 +96,16 @@ class ExpenseForm(FlaskForm):
     description = TextField('Description')
     amount = FlexibleDecimalField('Amount')
     date = DateField('Date', default=datetime.utcnow)
+
+
+def guest_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if current_user.username == 'guest' or app.config['DEBUG']:
+            return f(*args, **kwargs)
+        else:
+            abort(403)
+    return decorated_function
 
 
 @app.teardown_request
@@ -201,6 +209,12 @@ def global_data():
     return jsonify(data=result)
 
 
+def switch_to_user(username):
+    user = User.get(username=username)
+    logout_user()
+    login_user(user, remember=False)
+
+
 def ldap_login(username, password, remember=False):
     if app.config['DEBUG'] and not app.config['USE_LDAP']:
         user, created = User.get_or_create(username=username,
@@ -242,6 +256,7 @@ def get_listofshame():
     for u in User.select():
         entries.append({'name': u.name,
                         'balance': u.balance,
+                        'username': u.username,
                         'active': u.active,
                         'score': u.score})
     li = sorted(entries, key=lambda e: (-e['active'], e['balance']))
@@ -304,6 +319,28 @@ def submit_payment():
     return redirect(url_for('coffee.admin'))
 
 
+@bp.route("/administrate/switch-to-user/<username>/")
+@login_required
+def administrate_switch_user(username):
+    if is_admin():
+        switch_to_user(username)
+        return redirect(url_for('coffee.personal'))
+    else:
+        return abort(403)
+
+
+def warning_mail(user):
+    msg = Message(u"[Kaffeeministerium] Geringes Guthaben!")
+    msg.charset = 'utf-8'
+    msg.add_recipient(user.email)
+    msg.body = render_template('mail/lowbudget',
+                               balance=render_euros(user.balance))
+    if not app.config['DEBUG']:
+        mail.send(msg)
+    else:
+        print(u'Sending mail \n{}'.format(unicode(msg.as_string(), 'utf-8')))
+
+
 @bp.route("/administrate/consumption", methods=['POST'])
 @login_required
 def administrate_consumption():
@@ -349,6 +386,7 @@ def administrate_consumption():
 
 
 @bp.route("/app/", methods=['GET'])
+@guest_required
 def mobile_app():
     if request.args.get('jsdev'):
         code_url = 'http://localhost:8080/dev-bundle/app.js'
@@ -358,6 +396,7 @@ def mobile_app():
 
 
 @bp.route("/app/api/<function>/", methods=['GET', 'POST'])
+@guest_required
 def api(function):
 
     def get_userlist():
@@ -365,6 +404,7 @@ def api(function):
         today = datetime.now().replace(hour=0, minute=0)
         return [{'name': u.name,
                  'id': u.id,
+                 'username': u.username,
                  'consume': (u.consumptions
                      .select(fn.SUM(Consumption.units))
                      .where(Consumption.date >= today)
@@ -482,6 +522,8 @@ def logout():
 
 
 def ldap_authenticate(username, password):
+    # the guest user is special
+    assert(username != 'guest')
     try:
         ldap_server = Server(app.config['LDAP_HOST'], port=app.config['LDAP_PORT'])
         base_dn = app.config['LDAP_SEARCH_BASE']
