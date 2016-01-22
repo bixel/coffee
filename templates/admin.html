@@ -75,7 +75,7 @@
   <thead>
     <tr>
       <th>Amount / €</th>
-      <th>Name</th>
+      <th>Name (switch-to via link)</th>
       <th>Score</th>
     </tr>
   </thead>
@@ -83,12 +83,14 @@
     {% for entry in list_of_shame %}
     <tr>
       <td>{{ '%2.2f' % (entry.balance / 100) }}</td>
-      <td>{{ entry.name }}</td>
+      <td>
+        <a href="{{ url_for('administrate_switch_user', username=entry.username) }}">
+          {{ entry.name }}
+        </a>
+      </td>
       <td>{{ entry.score }}</td>
     </tr>
     {% endfor %}
   </tbody>
 </table>
-<ul>
-</ul>
 {% endblock %}

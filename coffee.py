@@ -362,6 +362,12 @@ def global_data():
     return json.dumps(result)
 
 
+def switch_to_user(username):
+    user = db.session.query(User).filter_by(username=username).first()
+    logout_user()
+    login_user(user, remember=False)
+
+
 def ldap_login(username, password, remember=False):
     data = ldap_authenticate(username, password)
     if data:
@@ -403,6 +409,7 @@ def get_listofshame():
     for u in users:
         entries.append({'name': u.name,
                         'balance': u.balance,
+                        'username': u.username,
                         'active': u.active,
                         'score': u.score})
     li = sorted(entries, key=lambda e: (-e['active'], e['balance']))
@@ -491,6 +498,16 @@ def administrate_consumption():
             return redirect(url_for('admin'))
         else:
             return 'Form not valid'
+    else:
+        return abort(403)
+
+
+@app.route("/administrate/switch-to-user/<username>/")
+@login_required
+def administrate_switch_user(username):
+    if is_admin(g.user.username):
+        switch_to_user(username)
+        return redirect(url_for('personal'))
     else:
         return abort(403)
 
