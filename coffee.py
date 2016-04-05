@@ -23,6 +23,7 @@ from jinja2 import evalcontextfilter
 from flask import (Flask,
                    render_template,
                    redirect,
+                   jsonify,
                    g,
                    url_for,
                    request,
@@ -360,6 +361,21 @@ def global_data():
     for l in sorted(li, key=lambda x: x[0]):
         result.append({'date': l[0], 'amount': l[1], 'description': l[2]})
     return json.dumps(result)
+
+
+@app.route('/api/<function>/')
+@login_required
+def api(function):
+    if function == 'consume':
+        cs = Consumption.query.filter(Consumption.date>datetime(2015, 10, 1)).all()
+    return jsonify({
+        'sum': sum([c.units for c in cs]),
+        'paid': sum([c.amountPaid for c in cs]) / -100.0,
+        'consume': [{
+            'units': c.units,
+            'date': str(c.date),
+        } for c in cs],
+    })
 
 
 def switch_to_user(username):
