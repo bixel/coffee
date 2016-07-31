@@ -26,6 +26,21 @@ class User(BaseModel):
     vip = BooleanField(default=False)
     admin = BooleanField(default=False)
 
+    @property
+    def is_authenticated(self):
+        return True
+
+    def get_id(self):
+        return self.username
+
+    @property
+    def is_anonymous(self):
+        return False
+
+    @property
+    def is_active(self):
+        return self.active
+
 
 class Transaction(BaseModel):
     date = DateField()
