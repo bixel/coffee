@@ -1,5 +1,3 @@
-
-
 function draw_table(file, columns, id) {
     d3.json(file, function(data) {
 

@@ -4,7 +4,9 @@ from peewee import (SqliteDatabase,
                     Model,
                     IntegerField,
                     ForeignKeyField,
-                    DateField)
+                    DateField,
+                    DeferredRelation,
+                    )
 
 import os
 
@@ -21,8 +23,8 @@ class BaseModel(Model):
 
 class User(BaseModel):
     username = CharField(unique=True)
-    email = CharField()
-    active = BooleanField(default=False)
+    email = CharField(default='')
+    active = BooleanField(default=True)
     vip = BooleanField(default=False)
     admin = BooleanField(default=False)
 
@@ -40,6 +42,9 @@ class User(BaseModel):
     @property
     def is_active(self):
         return self.active
+
+    def __str__(self):
+        return 'User `{}`'.format(self.username)
 
 
 class Transaction(BaseModel):

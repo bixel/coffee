@@ -1,33 +1,34 @@
 {% extends "site.html" %}
 {% block content %}
-
-
-<header>
+<div class="row">
+  <div class="col-xs-12">
     <h1>State of the Coffee</h1>
     <table class="table">
-      <tr>
-        <td>Actual Budget</td>
-        <td>{{ current_budget }}</td>
-      </tr>
-      <tr>
-        <td>Target Budget</td>
-        <td>{{ actual_budget }}</td>
-      </tr>
-      <tr>
-        <th colspan="2">Prices</th>
-      </tr>
-      {% for price in coffee_prices %}
-      <tr>
-        <td>{{ price[1] }}</td>
-        <td>{{ price[0]|euros }}</td>
-      </tr>
-      {% endfor %}
+      <tbody>
+        <tr>
+          <td>Actual Budget</td>
+          <td>{{ current_budget }}</td>
+        </tr>
+        <tr>
+          <td>Target Budget</td>
+          <td>{{ actual_budget }}</td>
+        </tr>
+        <tr>
+          <th colspan="2">Prices</th>
+        </tr>
+        {% for price in coffee_prices %}
+        <tr>
+          <td>{{ price[1] }}</td>
+          <td>{{ price[0]|euros }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
     </table>
     <div id='global_graph'></div>
     <script>
       draw_graph('/global_data.json', '#global_graph', 680, 400)
     </script>
-</header>
-
+  </div>
+</div>
 
 {% endblock %}
