@@ -3,7 +3,7 @@
 from __future__ import division, unicode_literals
 
 from datetime import datetime, timedelta, date
-import ldap3 as ldap
+from ldap3 import Server, Connection
 from wtforms import (StringField,
                      PasswordField,
                      BooleanField,
@@ -203,24 +203,25 @@ def ldap_login(username, password, remember=False):
         print(user, user.is_authenticated)
         login_user(user, remember=remember)
         return True
-    # data = ldap_authenticate(username, password)
-    # if data:
-    #     user = db.session.query(User).filter_by(username=username).first()
-    #     if not user:
-    #         user = User(username=username)
-    #         db.session.add(user)
-    #     user.name = unicode(data['cn'][0], 'utf-8')
-    #     try:
-    #         user.email = data['mail'][0]
-    #     except KeyError:
-    #         print('A user has no mail entry in LDAP!')
-    #     db.session.commit()
-    #     login_user(user, remember=remember)
-    #     return True
-    # else:
-    #     return False
-# 
-# 
+
+    data = ldap_authenticate(username, password)
+    if data:
+        user = db.session.query(User).filter_by(username=username).first()
+        if not user:
+            user = User(username=username)
+            db.session.add(user)
+        user.name = unicode(data['cn'][0], 'utf-8')
+        try:
+            user.email = data['mail'][0]
+        except KeyError:
+            print('A user has no mail entry in LDAP!')
+        db.session.commit()
+        login_user(user, remember=remember)
+        return True
+    else:
+        return False
+
+
 @app.route("/login", methods=['GET', 'POST'])
 def login():
     form = LoginForm()
@@ -499,41 +500,19 @@ def euros(eval_ctx, value):
     return render_euros(value)
 
 
-# def ldap_get(username):
-#     ldap_server = app.config['LDAP_HOST']
-#     base_dn = app.config['LDAP_SEARCH_BASE']
-#     connect = ldap.open(ldap_server, port=app.config['LDAP_PORT'])
-#     try:
-#         connect.bind_s('', '')
-#         result = connect.search_s(base_dn, ldap.SCOPE_SUBTREE,
-#                                   'uid={}'.format(username))
-#         connect.unbind_s()
-#         if result:
-#             data = result[0][1]
-#             return data
-#         else:
-#             return None
-#     except(ldap.LDAPError, e):
-#         print('LDAP error: {}'.format(e))
-#         connect.unbind_s()
-#         return None
-# 
-# 
 def ldap_authenticate(username, password):
     print('Trying to authenticate {}'.format(username))
-    ldap_server = app.config['LDAP_HOST']
+    ldap_server = Server(app.config['LDAP_HOST'], port=app.config['LDAP_PORT'])
     base_dn = app.config['LDAP_SEARCH_BASE']
-    connect = ldap.open(ldap_server, port=app.config['LDAP_PORT'])
-    search_filter = "uid=" + username
-    try:
-        connect.bind_s('uid=' + username + ',' + base_dn, password)
-        result = connect.search_s(base_dn, ldap.SCOPE_SUBTREE, search_filter)
-        connect.unbind_s()
-        data = result[0][1]
-        return data
-    except(ldap.LDAPError, e):
-        print('LDAP error: {}'.format(e))
-        connect.unbind_s()
+    ldap_conn = Connection(ldap_server,
+                           base_dn,
+                           password,
+                           auto_bind=True)
+    if ldap_conn.search(base_dn,
+                        app.config['LDAP_SEARCH_SUBTREE'],
+                        "uid=" + username):
+        return ldap_conn.entries
+    else:
         return None
 
 
