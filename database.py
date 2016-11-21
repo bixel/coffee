@@ -23,6 +23,7 @@ class BaseModel(Model):
 
 class User(BaseModel):
     username = CharField(unique=True)
+    name = CharField(null=True)
     email = CharField(default='')
     active = BooleanField(default=True)
     vip = BooleanField(default=False)

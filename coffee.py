@@ -198,7 +198,7 @@ def global_data():
 
 
 def ldap_login(username, password, remember=False):
-    if app.config['DEBUG']:
+    if app.config['DEBUG'] and not app.config['USE_LDAP']:
         user, created = User.get_or_create(username=username)
         print(user, user.is_authenticated)
         login_user(user, remember=remember)
@@ -206,16 +206,13 @@ def ldap_login(username, password, remember=False):
 
     data = ldap_authenticate(username, password)
     if data:
-        user = db.session.query(User).filter_by(username=username).first()
-        if not user:
-            user = User(username=username)
-            db.session.add(user)
-        user.name = unicode(data['cn'][0], 'utf-8')
+        user, created = User.get_or_create(username=username)
+        user.name = data[0]['cn']
         try:
-            user.email = data['mail'][0]
+            user.email = data[0]['mail']
         except KeyError:
             print('A user has no mail entry in LDAP!')
-        db.session.commit()
+        user.save()
         login_user(user, remember=remember)
         return True
     else:
@@ -505,12 +502,13 @@ def ldap_authenticate(username, password):
     ldap_server = Server(app.config['LDAP_HOST'], port=app.config['LDAP_PORT'])
     base_dn = app.config['LDAP_SEARCH_BASE']
     ldap_conn = Connection(ldap_server,
-                           base_dn,
+                           "uid={},cn=users,{}".format(username, base_dn),
                            password,
                            auto_bind=True)
     if ldap_conn.search(base_dn,
-                        app.config['LDAP_SEARCH_SUBTREE'],
-                        "uid=" + username):
+                        '(&(objectclass=person)(uid={}))'.format(username),
+                        attributes=['mail', 'cn']):
+        print(ldap_conn.entries)
         return ldap_conn.entries
     else:
         return None
