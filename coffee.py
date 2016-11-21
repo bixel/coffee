@@ -52,7 +52,7 @@ app = Flask(__name__)
 login_manager = LoginManager()
 app.config.from_object('config')
 app.config.from_envvar('COFFEE_SETTINGS', silent=True)
-admin = Admin(app, name='E5 MoCA DB ADMIN', template_mode='bootstrap3')
+admin = Admin(app, name='E5 MoCA DB ADMIN', template_mode='bootstrap3', url='/admin/db/')
 
 login_manager.init_app(app)
 
@@ -71,44 +71,38 @@ class LoginForm(FlaskForm):
     remember = BooleanField('remember', default=False)
 
 
-# class PaymentForm(Form):
-#     users = User.query.order_by(User.name).all()
-#     ids = map(lambda x: x.id, users)
-#     names = map(lambda x: '{}{}'.format(x.name, (' ✉️' if x.email else '')),
-#                 users)
-#     uid = SelectField('Name', choices=zip(ids, names), coerce=int)
-#     amount = IntegerField('Amount')
-# 
-# 
-# class ConsumptionForm(Form):
-#     users = User.query.order_by(User.name).all()
-#     ids = map(lambda x: x.id, users)
-#     names = map(lambda x: '{}{}'.format(x.name, (' ✉️' if x.email else '')),
-#                 users)
-#     uid = SelectField('Name', choices=zip(ids, names), coerce=int)
-#     units = FieldList(IntegerField('Units'))
-# 
-# 
-# class ConsumptionSingleForm(NoCsrfForm):
-#     user = HiddenField('uid')
-#     consumptions = FieldList(IntegerField('consumption', default=0),
-#                              min_entries=len(app.config['COFFEE_PRICES']))
-# 
-# 
-# class ConsumptionListForm(Form):
-#     users = FieldList(FormField(ConsumptionSingleForm))
-# 
-# 
-# class ExpenseForm(Form):
-#     description = TextField('Description')
-#     amount = IntegerField('Amount')
-#     date = DateField('Date', default=datetime.utcnow)
-# 
-# 
-@app.before_request
-def before_request():
-    db.connect()
-    g.user = current_user
+class PaymentForm(FlaskForm):
+    users = []
+    ids = map(lambda x: x.id, users)
+    names = map(lambda x: '{}{}'.format(x.name, (' ✉️' if x.email else '')),
+                users)
+    uid = SelectField('Name', choices=zip(ids, names), coerce=int)
+    amount = IntegerField('Amount')
+
+
+class ConsumptionForm(FlaskForm):
+    users = []
+    ids = map(lambda x: x.id, users)
+    names = map(lambda x: '{}{}'.format(x.name, (' ✉️' if x.email else '')),
+                users)
+    uid = SelectField('Name', choices=zip(ids, names), coerce=int)
+    units = FieldList(IntegerField('Units'))
+
+
+class ConsumptionSingleForm(NoCsrfForm):
+    user = HiddenField('uid')
+    consumptions = FieldList(IntegerField('consumption', default=0),
+                             min_entries=len(app.config['COFFEE_PRICES']))
+
+
+class ConsumptionListForm(FlaskForm):
+    users = FieldList(FormField(ConsumptionSingleForm))
+
+
+class ExpenseForm(FlaskForm):
+    description = TextField('Description')
+    amount = IntegerField('Amount')
+    date = DateField('Date', default=datetime.utcnow)
 
 
 @app.teardown_request
@@ -119,8 +113,8 @@ def after_request(callback):
 
 @login_manager.user_loader
 def load_user(username):
-    if app.config['DEBUG']:
-        return User(username=username)
+    if app.config['DEBUG'] and not app.config['USE_LDAP']:
+        return User(username=username, admin=True)
     return User.get(User.username == username)
 
 
@@ -159,7 +153,7 @@ def index():
 def personal():
     balance = (Transaction.select(fn.SUM(Transaction.diff))
                           .join(User)
-                          .where(User.username==g.user.username)
+                          .where(User.username==current_user.username)
                           .scalar()) or 0
     if balance > 0:
         balance_type = 'positive'
@@ -247,17 +241,19 @@ def login():
 @app.route('/admin/')
 @login_required
 def admin():
-    if is_admin(g.user.username):
-        pform = PaymentForm()
+    if current_user.admin:
+        class P(PaymentForm):
+            pass
+        P.users = User.select()
+        pform = P()
         cform = ConsumptionForm()
         for price, title in app.config['COFFEE_PRICES']:
             cform.units.append_entry()
             cform.units[-1].label = title
         eform = ExpenseForm()
-        listofshame = get_listofshame()
+        listofshame = None
         return render_template('admin.html', payment_form=pform,
-                               consumption_form=cform, expense_form=eform,
-                               list_of_shame=listofshame)
+                               consumption_form=cform, expense_form=eform)
     else:
         return abort(403)
 # 
