@@ -72,20 +72,12 @@ class LoginForm(FlaskForm):
 
 
 class PaymentForm(FlaskForm):
-    users = []
-    ids = map(lambda x: x.id, users)
-    names = map(lambda x: '{}{}'.format(x.name, (' ✉️' if x.email else '')),
-                users)
-    uid = SelectField('Name', choices=zip(ids, names), coerce=int)
+    uid = SelectField('Name', choices=[], coerce=int)
     amount = IntegerField('Amount')
 
 
 class ConsumptionForm(FlaskForm):
-    users = []
-    ids = map(lambda x: x.id, users)
-    names = map(lambda x: '{}{}'.format(x.name, (' ✉️' if x.email else '')),
-                users)
-    uid = SelectField('Name', choices=zip(ids, names), coerce=int)
+    uid = SelectField('Name', choices=[], coerce=int)
     units = FieldList(IntegerField('Units'))
 
 
@@ -116,6 +108,11 @@ def load_user(username):
     if app.config['DEBUG'] and not app.config['USE_LDAP']:
         return User(username=username, admin=True)
     return User.get(User.username == username)
+
+
+@app.template_filter('euros')
+def euros(amount):
+    return '{:.2f}€'.format(amount / 100)
 
 
 # @app.route('/budget')
@@ -151,10 +148,9 @@ def index():
 @app.route('/personal/')
 @login_required
 def personal():
-    balance = (Transaction.select(fn.SUM(Transaction.diff))
-                          .join(User)
-                          .where(User.username==current_user.username)
-                          .scalar()) or 0
+    user = User.get(User.username==current_user.username)
+    balance = user.balance
+    print("Balance is", balance)
     if balance > 0:
         balance_type = 'positive'
     else:
@@ -193,7 +189,8 @@ def global_data():
 
 def ldap_login(username, password, remember=False):
     if app.config['DEBUG'] and not app.config['USE_LDAP']:
-        user, created = User.get_or_create(username=username)
+        user, created = User.get_or_create(username=username,
+                                           defaults=dict(name=username))
         print(user, user.is_authenticated)
         login_user(user, remember=remember)
         return True
@@ -242,11 +239,10 @@ def login():
 @login_required
 def admin():
     if current_user.admin:
-        class P(PaymentForm):
-            pass
-        P.users = User.select()
-        pform = P()
+        pform = PaymentForm()
+        pform.uid.choices = User.get_uids()
         cform = ConsumptionForm()
+        cform.uid.choices = User.get_uids()
         for price, title in app.config['COFFEE_PRICES']:
             cform.units.append_entry()
             cform.units[-1].label = title
@@ -256,43 +252,47 @@ def admin():
                                consumption_form=cform, expense_form=eform)
     else:
         return abort(403)
-# 
-# 
-# @app.route("/administrate/payment", methods=['POST'])
-# @login_required
-# def administrate_payment():
-#     if is_admin(g.user.username):
-#         pform = PaymentForm()
-#         if pform.validate_on_submit():
-#             uid = pform.uid.data
-#             amount = pform.amount.data
-#             user = db.session.query(User).filter_by(id=uid).first()
-#             payment = Payment(amount=amount)
-#             user.payments.append(payment)
-#             bc = BudgetChange(amount=amount,
-#                               description='Payment from ' + user.name)
-#             payment.budgetChanges.append(bc)
-#             db.session.add(bc)
-#             db.session.commit()
-#             if user.email:
-#                 msg = Message(u"[Kaffeeministerium] Einzahlung von %s"
-#                               % render_euros(amount))
-#                 msg.charset = 'utf-8'
-#                 msg.add_recipient(user.email)
-#                 msg.body = render_template('mail/payment',
-#                                            amount=render_euros(amount),
-#                                            balance=render_euros(user.balance))
-#                 if not app.config['DEBUG']:
-#                     mail.send(msg)
-#                 else:
-#                     print(u'Sending mail \n{}'.format(unicode(msg.as_string(),
-#                                                               'utf-8')))
-# 
-#             return redirect(url_for('admin'))
-#     else:
-#         return abort(403)
-# 
-# 
+
+
+@app.route("/admin/payment/", methods=['POST'])
+@login_required
+def submit_payment():
+    if not current_user.admin:
+        return abort(403)
+
+    pform = PaymentForm()
+    pform.uid.choices = User.get_uids()
+    if pform.validate_on_submit():
+        uid = pform.uid.data
+        print(pform.amount.data)
+        amount = float(pform.amount.data) * 100
+        print(amount)
+        user = User.get(User.id==uid)
+        transaction = Transaction(user=user, diff=amount,
+                                  description='{} payment from {}'
+                                  .format(euros(amount), user.name))
+        transaction.save()
+        if user.email:
+            msg = Message('[Kaffeeministerium] Einzahlung von {}'
+                          .format(euros(amount)))
+            msg.charset = 'utf-8'
+            msg.add_recipient(user.email)
+            msg.body = render_template('mail/payment',
+                                       amount=amount,
+                                       balance=user.balance)
+            flash('Mail sent to user {}'.format(user.name))
+            if not app.config['DEBUG']:
+                mail.send(msg)
+            else:
+                print(u'Sending mail \n{}'.format(msg.as_string()))
+
+
+        return redirect(url_for('admin'))
+    else:
+        flash('Payment invalid.')
+        return redirect(url_for('admin'))
+
+
 # @app.route("/administrate/consumption", methods=['POST'])
 # @login_required
 # def administrate_consumption():
@@ -485,12 +485,6 @@ def render_euros(num):
     euros = num // 100
     cents = num % 100
     return (u'{}{}.{:02d} €'.format(minus, euros, cents))
-
-
-@app.template_filter()
-@evalcontextfilter
-def euros(eval_ctx, value):
-    return render_euros(value)
 
 
 def ldap_authenticate(username, password):

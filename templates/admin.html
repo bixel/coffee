@@ -24,7 +24,7 @@
 </div>
 <div class="row">
   <div class="col-md-4">
-    <form method="POST" action="/administrate/payment" class="form-signin">
+    <form method="POST" action="{{ url_for('submit_payment')}}" class="form-signin">
         {{ payment_form.hidden_tag() }}
         <h3 class="form-signin-heading">Payment</h3>
         <div class="form-group">

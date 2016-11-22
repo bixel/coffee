@@ -20,3 +20,11 @@
   stroke: steelblue;
   stroke-width: 3.0px;
 }
+
+span.negative {
+    color: #FC381E;
+}
+
+span.positive {
+    color: #66FF43;
+}
