@@ -12,8 +12,9 @@ from peewee import (SqliteDatabase,
 import os
 import datetime
 
+FILENAME = os.path.get('DBFILE') or 'coffee.db'
 DBPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                      'coffee.db')
+                      FILENAME)
 
 db = SqliteDatabase(DBPATH)
 
