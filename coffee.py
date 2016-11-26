@@ -46,7 +46,7 @@ from subprocess import Popen
 
 from math import exp
 
-from database import User, Transaction, Budget, Service, db
+from database import User, Transaction, Budget, Service, Consumption, db
 
 app = Flask(__name__)
 login_manager = LoginManager()
@@ -106,7 +106,10 @@ def after_request(callback):
 @login_manager.user_loader
 def load_user(username):
     if app.config['DEBUG'] and not app.config['USE_LDAP']:
-        return User(username=username, admin=True)
+        return User.get_or_create(username=username, defaults={
+            'name': username,
+            'admin': True,
+        })[0]
     return User.get(User.username == username)
 
 
@@ -150,12 +153,11 @@ def index():
 def personal():
     user = User.get(User.username==current_user.username)
     balance = user.balance
-    print("Balance is", balance)
     if balance > 0:
         balance_type = 'positive'
     else:
         balance_type = 'negative'
-    return render_template('personal.html', balance=balance,
+    return render_template('personal.html', user=user, balance=balance,
                            balance_type=balance_type)
 
 
@@ -191,7 +193,7 @@ def ldap_login(username, password, remember=False):
     if app.config['DEBUG'] and not app.config['USE_LDAP']:
         user, created = User.get_or_create(username=username,
                                            defaults=dict(name=username))
-        print(user, user.is_authenticated)
+        print(user, user.is_authenticated, created)
         login_user(user, remember=remember)
         return True
 
@@ -509,5 +511,5 @@ login_manager.login_view = 'login'
 if __name__ == '__main__':
     if db.is_closed():
         db.connect()
-        db.create_tables([User, Transaction], safe=True)
+        db.create_tables([User, Transaction, Consumption], safe=True)
     app.run(host='localhost', port=5001)

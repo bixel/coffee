@@ -1,8 +1,9 @@
 {% extends "site.html" %}
 {% block content %}
 
+<h2>Coffee History <small>{{ user.name }}</small></h2>
 <div class="row">
-  <div class="col-sm-8" style="text-align: center;">
+  <div class="col-sm-8">
     <h2>Current balance: <span class="{{ balance_type }}">{{ balance | euros }}</span></h2>
     <div id="personal_graph"></div>
     <script>

@@ -7,12 +7,13 @@ from peewee import (SqliteDatabase,
                     DateField,
                     DeferredRelation,
                     fn,
+                    JOIN,
                     )
 
 import os
 import datetime
 
-FILENAME = os.path.get('DBFILE') or 'coffee.db'
+FILENAME = os.environ.get('DBFILE') or 'coffee.db'
 DBPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                       FILENAME)
 
@@ -49,10 +50,23 @@ class User(BaseModel):
 
     @property
     def balance(self):
-        q = (User
-             .select(User.id==self.id)
-             .annotate(Transaction, fn.SUM(Transaction.diff).alias('_balance')))
-        return q.get()._balance
+        return self.payments - self.consume
+
+    @property
+    def payments(self):
+        return (User
+                .select(User.id==self.id, fn.SUM(Transaction.diff).alias('_payments'))
+                .join(Transaction, JOIN.LEFT_OUTER)
+                .get()
+                ._payments) or 0
+
+    @property
+    def consume(self):
+        return (User
+                .select(User.id==self.id, fn.SUM(Consumption.units * Consumption.price_per_unit).alias('_consume'))
+                .join(Consumption, JOIN.LEFT_OUTER)
+                .get()
+                ._consume) or 0
 
     def get_uids():
         users = User.select().order_by(User.username)
@@ -82,6 +96,7 @@ class Service(BaseModel):
 
 
 class Consumption(BaseModel):
-    date = DateField()
-    units = IntegerField()
+    date = DateField(default=datetime.datetime.now)
+    units = IntegerField(default=1)
     price_per_unit = IntegerField()
+    user = ForeignKeyField(User)

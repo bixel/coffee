@@ -177,3 +177,4 @@ if __name__ == '__main__':
     for user in users:
         new = NewUser(username=user.username, name=user.name, email=user.email,
                       vip=user.vip, active=user.active)
+        print(new)
