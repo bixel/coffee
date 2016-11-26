@@ -8,10 +8,12 @@ from wtforms import (StringField,
                      PasswordField,
                      BooleanField,
                      IntegerField,
+                     DecimalField,
                      HiddenField,
                      FieldList,
                      FormField,
                      SelectField,
+                     validators,
                      TextField)
 from wtforms import Form as NoCsrfForm
 from wtforms.fields.html5 import DateField
@@ -46,7 +48,7 @@ from subprocess import Popen
 
 from math import exp
 
-from database import User, Transaction, Budget, Service, Consumption, db
+from database import User, Transaction, Service, Consumption, db
 
 app = Flask(__name__)
 login_manager = LoginManager()
@@ -61,7 +63,6 @@ mail.init_app(app)
 
 admin.add_view(ModelView(User))
 admin.add_view(ModelView(Transaction))
-admin.add_view(ModelView(Budget))
 admin.add_view(ModelView(Service))
 
 
@@ -71,29 +72,26 @@ class LoginForm(FlaskForm):
     remember = BooleanField('remember', default=False)
 
 
+class FlexibleDecimalField(DecimalField):
+    def process_formdata(self, valuelist):
+        if valuelist:
+            valuelist[0] = valuelist[0].replace(',', '.')
+        return super(FlexibleDecimalField, self).process_formdata(valuelist)
+
+
 class PaymentForm(FlaskForm):
     uid = SelectField('Name', choices=[], coerce=int)
-    amount = IntegerField('Amount')
+    amount = FlexibleDecimalField('Amount')
 
 
 class ConsumptionForm(FlaskForm):
     uid = SelectField('Name', choices=[], coerce=int)
-    units = FieldList(IntegerField('Units'))
-
-
-class ConsumptionSingleForm(NoCsrfForm):
-    user = HiddenField('uid')
-    consumptions = FieldList(IntegerField('consumption', default=0),
-                             min_entries=len(app.config['COFFEE_PRICES']))
-
-
-class ConsumptionListForm(FlaskForm):
-    users = FieldList(FormField(ConsumptionSingleForm))
+    units = FieldList(IntegerField('Units', [validators.optional()]))
 
 
 class ExpenseForm(FlaskForm):
     description = TextField('Description')
-    amount = IntegerField('Amount')
+    amount = FlexibleDecimalField('Amount')
     date = DateField('Date', default=datetime.utcnow)
 
 
@@ -118,32 +116,28 @@ def euros(amount):
     return '{:.2f}€'.format(amount / 100)
 
 
-# @app.route('/budget')
-# def budget():
-#     changes = db.session.query(BudgetChange).all()
-#     s = 0
-#     for c in changes:
-#         s += c.amount
-#     return str(s)
-# 
-# 
+def is_admin():
+    return current_user.admin or app.config['DEBUG']
+
+
 @app.route('/', methods=['GET', 'POST'])
 @login_required
 def index():
     coffee_prices = app.config['COFFEE_PRICES']
-    changes = []  # db.session.query(BudgetChange).all()
-    credits = []  # db.session.query(User).all()
-
-    s = 0
-    credit = 0
-    for c in changes:
-        s += c.amount
-    for c in credits:
-        credit -= c.balance
+    target_budget = (
+        Consumption
+        .select(fn.SUM(Consumption.units * Consumption.price_per_unit))
+        .scalar()
+        +
+        Transaction
+        .select(fn.SUM(Transaction.diff))
+        .where(Transaction.user==None)
+        .scalar())
+    actual_budget = Transaction.select(fn.SUM(Transaction.diff)).scalar()
 
     return render_template(
-        "global.html", current_budget=render_euros(s),
-        actual_budget=render_euros(s + credit),
+        "global.html", current_budget=actual_budget,
+        target_budget=target_budget,
         coffee_prices=coffee_prices
     )
 
@@ -166,12 +160,23 @@ def personal():
 def personal_data():
     data = []
 
-    for t in Transaction.select().where(Transaction.user==g.user.id):
+    user = User.get(User.id==current_user.id)
+    for t in user.transactions:
+        print(t.date, t.diff, t.description)
         data.append((t.date, t.diff))
 
+    weekly = 0
+    for c in user.consumptions:
+        weekly -= c.units * c.price_per_unit
+        if c.date.weekday() == 4:
+            data.append((c.date, weekly))
+            weekly = 0
+    data.append((datetime.today().date(), weekly))
+
+    print(data)
     result = []
     for (d, a) in sorted(data, key=lambda x: x[0], reverse=True):
-        result.append({'date': str(d.date()), 'amount': a})
+        result.append({'date': str(d), 'amount': a})
 
     return json.dumps(result)
 
@@ -182,7 +187,7 @@ def global_data():
     changes = Transaction.select()
     li = []
     for c in changes:
-        li.append((str(c.date.date()), c.diff, c.description))
+        li.append((str(c.date), c.diff, c.description))
     result = []
     for l in sorted(li, key=lambda x: x[0]):
         result.append({'date': l[0], 'amount': l[1], 'description': l[2]})
@@ -223,190 +228,145 @@ def login():
             return '<h1>Login failed</h1>'
         return redirect(url_for('index'))
     return render_template('login.html', form=form)
-# 
-# 
-# def get_listofshame():
-#     users = db.session.query(User).all()
-#     entries = []
-#     for u in users:
-#         entries.append({'name': u.name,
-#                         'balance': u.balance,
-#                         'active': u.active,
-#                         'score': u.score})
-#     li = sorted(entries, key=lambda e: (-e['active'], e['balance']))
-#     return li
-# 
-# 
+
+
+def get_listofshame():
+    entries = []
+    for u in User.select():
+        entries.append({'name': u.name,
+                        'balance': u.balance,
+                        'active': u.active,
+                        'score': u.score})
+    li = sorted(entries, key=lambda e: (-e['active'], e['balance']))
+    return li
+
+
 @app.route('/admin/')
 @login_required
 def admin():
-    if current_user.admin:
-        pform = PaymentForm()
-        pform.uid.choices = User.get_uids()
-        cform = ConsumptionForm()
-        cform.uid.choices = User.get_uids()
-        for price, title in app.config['COFFEE_PRICES']:
-            cform.units.append_entry()
-            cform.units[-1].label = title
-        eform = ExpenseForm()
-        listofshame = None
-        return render_template('admin.html', payment_form=pform,
-                               consumption_form=cform, expense_form=eform)
-    else:
+    if not is_admin():
         return abort(403)
+
+    pform = PaymentForm()
+    pform.uid.choices = User.get_uids()
+    cform = ConsumptionForm()
+    cform.uid.choices = User.get_uids()
+    for price, title in app.config['COFFEE_PRICES']:
+        cform.units.append_entry()
+        cform.units[-1].label = title
+    eform = ExpenseForm()
+    listofshame = get_listofshame()
+    return render_template('admin.html', payment_form=pform,
+                           consumption_form=cform, expense_form=eform,
+                           listofshame=listofshame)
 
 
 @app.route("/admin/payment/", methods=['POST'])
 @login_required
 def submit_payment():
-    if not current_user.admin:
+    if not is_admin():
         return abort(403)
 
     pform = PaymentForm()
     pform.uid.choices = User.get_uids()
-    if pform.validate_on_submit():
-        uid = pform.uid.data
-        print(pform.amount.data)
-        amount = float(pform.amount.data) * 100
-        print(amount)
-        user = User.get(User.id==uid)
-        transaction = Transaction(user=user, diff=amount,
-                                  description='{} payment from {}'
-                                  .format(euros(amount), user.name))
-        transaction.save()
-        if user.email:
-            msg = Message('[Kaffeeministerium] Einzahlung von {}'
-                          .format(euros(amount)))
-            msg.charset = 'utf-8'
-            msg.add_recipient(user.email)
-            msg.body = render_template('mail/payment',
-                                       amount=amount,
-                                       balance=user.balance)
-            flash('Mail sent to user {}'.format(user.name))
-            if not app.config['DEBUG']:
-                mail.send(msg)
-            else:
-                print(u'Sending mail \n{}'.format(msg.as_string()))
-
-
-        return redirect(url_for('admin'))
-    else:
+    if not pform.validate_on_submit():
         flash('Payment invalid.')
         return redirect(url_for('admin'))
 
+    uid = pform.uid.data
+    amount = float(pform.amount.data) * 100
+    user = User.get(User.id==uid)
+    transaction = Transaction(user=user, diff=amount,
+                              description='{} payment from {}'
+                              .format(euros(amount), user.name))
+    transaction.save()
+    if user.email:
+        msg = Message('[Kaffeeministerium] Einzahlung von {}'
+                      .format(euros(amount)))
+        msg.charset = 'utf-8'
+        msg.add_recipient(user.email)
+        msg.body = render_template('mail/payment',
+                                   amount=amount,
+                                   balance=user.balance)
+        flash('Mail sent to user {}'.format(user.name))
+        if not app.config['DEBUG']:
+            mail.send(msg)
+        else:
+            print(u'Sending mail \n{}'.format(msg.as_string()))
 
-# @app.route("/administrate/consumption", methods=['POST'])
-# @login_required
-# def administrate_consumption():
-#     if is_admin(g.user.username):
-#         cform = ConsumptionForm()
-#         if cform.validate_on_submit():
-#             uid = cform.uid.data
-#             user = db.session.query(User).filter_by(id=uid).first()
-#             user.active = True
-#             for u, c in zip(cform.units.data, app.config['COFFEE_PRICES']):
-#                 if(u > 0):
-#                     user.consumptions.append(Consumption(units=u,
-#                                              amountPaid=-u * c[0]))
-#             db.session.commit()
-#             if user.balance < app.config['BUDGET_WARN_BELOW'] and user.email:
-#                 msg = Message(u"[Kaffeeministerium] Geringes Guthaben!")
-#                 msg.charset = 'utf-8'
-#                 msg.add_recipient(user.email)
-#                 msg.body = render_template('mail/lowbudget',
-#                                            balance=render_euros(user.balance))
-#                 if not app.config['DEBUG']:
-#                     mail.send(msg)
-#                 else:
-#                     print(u'Sending mail \n{}'.format(unicode(msg.as_string(),
-#                                                               'utf-8')))
-# 
-#             return redirect(url_for('admin'))
-#         else:
-#             return 'Form not valid'
-#     else:
-#         return abort(403)
-# 
-# 
-# def warning_mail(user):
-#     msg = Message(u"[Kaffeeministerium] Geringes Guthaben!")
-#     msg.charset = 'utf-8'
-#     msg.add_recipient(user.email)
-#     msg.body = render_template('mail/lowbudget',
-#                                balance=render_euros(user.balance))
-#     if not app.config['DEBUG']:
-#         mail.send(msg)
-#     else:
-#         print(u'Sending mail \n{}'.format(unicode(msg.as_string(), 'utf-8')))
-# 
-# 
-# @app.route('/administrate/consumption/list', methods=['POST', 'GET'])
-# @login_required
-# def administrate_consumption_list():
-#     if is_admin(g.user.username):
-#         form = ConsumptionListForm()
-#         if request.method == 'POST':
-#             if form.validate_on_submit():
-#                 for f in form.users.entries:
-#                     notify = False
-#                     active = False
-#                     user = User.query.get(f.user.data)
-#                     for units, price in zip(f.consumptions.data,
-#                                             app.config['COFFEE_PRICES']):
-#                         if units > 0:
-#                             user.consumptions.append(Consumption(
-#                                 units=units,
-#                                 amountPaid=-units * price[0]
-#                             ))
-#                             print('Consume added for {}'.format(user.name))
-#                             notify = True
-#                             active = True
-#                     db.session.commit()
-#                     if (notify and user.email and user.balance
-#                             < app.config['BUDGET_WARN_BELOW']):
-#                         warning_mail(user)
-#                     user.active = active
-#             else:
-#                 print(form.errors)
-#             return redirect(url_for('administrate_consumption_list'))
-#         else:
-#             users = User.query.order_by(User.active.desc(), User.name).all()
-#             for u in users:
-#                 form.users.append_entry()
-#                 form.users.entries[-1].user.data = u.id
-#                 form.users.entries[-1].consumptions.label = u.name
-#             return render_template('consumption_list.html', form=form)
-#     else:
-#         return abort(403)
-# 
-# 
-# @app.route("/administrate/expenses", methods=['POST'])
-# @login_required
-# def administrate_expenses():
-#     if is_admin(g.user.username):
-#         eform = ExpenseForm()
-#         if eform.validate_on_submit():
-#             description = eform.description.data
-#             amount = eform.amount.data
-#             date = (eform.date.data
-#                     if eform.date.data != ''
-#                     else datetime.utcnow())
-#             bc = BudgetChange(amount=amount,
-#                               description=description,
-#                               date=date)
-#             db.session.add(bc)
-#             db.session.commit()
-#         else:
-#             for field, errors in eform.errors.items():
-#                 for error in errors:
-#                     flash(u'Error in the %s field - %s'
-#                           % (getattr(eform, field).label.text, error))
-# 
-#         return redirect(url_for('admin'))
-#     else:
-#         return abort(403)
-# 
-# 
+    return redirect(url_for('admin'))
+
+
+@app.route("/administrate/consumption", methods=['POST'])
+@login_required
+def administrate_consumption():
+    if not is_admin():
+        return abort(403)
+
+    cform = ConsumptionForm()
+    cform.uid.choices = User.get_uids()
+    if not cform.validate_on_submit():
+        return 'Form not valid'
+
+    uid = cform.uid.data
+    user = User.get(User.id==uid)
+    user.active = True
+    user.save()
+
+    # Check if there was any useful input
+    if not True in [x and x > 0 for x in cform.units.data]:
+        flash('No updates given.')
+        return redirect(url_for('admin'))
+
+    for u, c in zip(cform.units.data, app.config['COFFEE_PRICES']):
+        if(u):
+            consumption = Consumption(units=u, price_per_unit=c[0], user=user)
+            consumption.save()
+    balance = user.balance
+    if balance < app.config['BUDGET_WARN_BELOW']:
+        if user.email:
+            msg = Message(u"[Kaffeeministerium] Geringes Guthaben!")
+            msg.charset = 'utf-8'
+            msg.add_recipient(user.email)
+            msg.body = render_template('mail/lowbudget',
+                                       balance=euros(balance))
+            if not app.config['DEBUG']:
+                mail.send(msg)
+            else:
+                print(u'Sending mail \n{}'.format(unicode(msg.as_string(),
+                                                      'utf-8')))
+            flash('Warning mail sent. Balance is {}'.format(euros(balance)))
+        else:
+            flash('Balance is {}. User could not be notified.'.format(euros(balance)))
+
+    return redirect(url_for('admin'))
+
+
+@app.route("/administrate/expenses", methods=['POST'])
+@login_required
+def administrate_expenses():
+    if not is_admin():
+        return abort(403)
+
+    eform = ExpenseForm()
+    if not eform.validate_on_submit():
+        for field, errors in eform.errors.items():
+            for error in errors:
+                flash(u'Error in the %s field - %s'
+                      % (getattr(eform, field).label.text, error))
+        return redirect(url_for('admin'))
+
+    description = eform.description.data
+    amount = eform.amount.data
+    date = (eform.date.data
+            if eform.date.data != ''
+            else datetime.utcnow())
+    t = Transaction(diff=100 * amount, date=date, description=description)
+    t.save()
+    flash('Transaction stored.')
+    return redirect(url_for('admin'))
+
+
 # @app.route('/administrate/service.pdf')
 # @login_required
 # def administrate_service_list():
@@ -478,17 +438,6 @@ def logout():
     return redirect(url_for('login'))
 
 
-def render_euros(num):
-    minus = ""
-    if num < 0:
-        num *= -1
-        minus = "-"
-
-    euros = num // 100
-    cents = num % 100
-    return (u'{}{}.{:02d} €'.format(minus, euros, cents))
-
-
 def ldap_authenticate(username, password):
     print('Trying to authenticate {}'.format(username))
     ldap_server = Server(app.config['LDAP_HOST'], port=app.config['LDAP_PORT'])
@@ -511,5 +460,5 @@ login_manager.login_view = 'login'
 if __name__ == '__main__':
     if db.is_closed():
         db.connect()
-        db.create_tables([User, Transaction, Consumption], safe=True)
+        db.create_tables([User, Transaction, Consumption, Service], safe=True)
     app.run(host='localhost', port=5001)

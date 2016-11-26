@@ -10,6 +10,8 @@ from peewee import (SqliteDatabase,
                     JOIN,
                     )
 
+from math import exp
+
 import os
 import datetime
 
@@ -55,15 +57,31 @@ class User(BaseModel):
     @property
     def payments(self):
         return (User
-                .select(User.id==self.id, fn.SUM(Transaction.diff).alias('_payments'))
+                .select(fn.SUM(Transaction.diff).alias('_payments'))
+                .where(User.id==self.id)
                 .join(Transaction, JOIN.LEFT_OUTER)
                 .get()
                 ._payments) or 0
 
     @property
+    def score(self):
+        services = 0
+        consumptions = 1
+        now = datetime.datetime.utcnow()
+        for s in self.services:
+            timediff = now.date() - s.date
+            services += s.service_count * exp(-timediff.days / 365)
+        for c in self.consumptions:
+            timediff = now.date() - c.date
+            units = c.units or 0
+            consumptions += units * exp(-timediff.days / 365)
+        return services**3 / consumptions
+
+    @property
     def consume(self):
         return (User
-                .select(User.id==self.id, fn.SUM(Consumption.units * Consumption.price_per_unit).alias('_consume'))
+                .select(fn.SUM(Consumption.units * Consumption.price_per_unit).alias('_consume'))
+                .where(User.id==self.id)
                 .join(Consumption, JOIN.LEFT_OUTER)
                 .get()
                 ._consume) or 0
@@ -78,20 +96,14 @@ class User(BaseModel):
 
 class Transaction(BaseModel):
     date = DateField(default=datetime.datetime.now)
-    user = ForeignKeyField(User, null=True)
+    user = ForeignKeyField(User, null=True, related_name='transactions')
     description = CharField()
     diff = IntegerField()
 
 
-class Budget(BaseModel):
-    amount = IntegerField()
-    transaction = ForeignKeyField(Transaction)
-
-
 class Service(BaseModel):
-    start_date = DateField()
-    end_date = DateField()
-    user = ForeignKeyField(User)
+    date = DateField()
+    user = ForeignKeyField(User, related_name='services')
     service_count = IntegerField()
 
 
@@ -99,4 +111,4 @@ class Consumption(BaseModel):
     date = DateField(default=datetime.datetime.now)
     units = IntegerField(default=1)
     price_per_unit = IntegerField()
-    user = ForeignKeyField(User)
+    user = ForeignKeyField(User, related_name='consumptions')
