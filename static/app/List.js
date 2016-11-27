@@ -22,7 +22,7 @@ export default class List extends Component {
       <div className="col-xs-3"><h4>Verbrauch Heute</h4></div>
       <div className="col-xs-6"></div>
       </div>
-      <Row products={this.state.products} name="Kevin Heinicke" consume="5" style={{background: "#E1EBCE", padding: "4px",}} />
+      <Row products={this.state.products} name="Kevin Heinicke" consume="5" style={{background: "#E1EBCE", padding: "4px"}} />
     </div>
   }
 }
