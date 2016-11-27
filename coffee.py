@@ -339,6 +339,11 @@ def administrate_consumption():
     return redirect(url_for('admin'))
 
 
+@app.route("/app/")
+def mobile_app():
+    return render_template('app.html')
+
+
 @app.route("/administrate/expenses", methods=['POST'])
 @login_required
 def administrate_expenses():
