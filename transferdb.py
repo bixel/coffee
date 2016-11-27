@@ -10,6 +10,11 @@ from sqlalchemy import (Column,
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from database import User as NewUser
+from database import Consumption as NewConsumption
+from database import Transaction as NewTransaction
+from database import Service as NewService
+from database import db
+from datetime import datetime
 
 Base = declarative_base()
 
@@ -171,10 +176,50 @@ Base.metadata.create_all(engine)
 
 
 if __name__ == '__main__':
+    db.create_tables([NewUser, NewConsumption, NewTransaction, NewService])
+
     s = session()
-    print('Transferring Users')
+
+    print('Transferring currently active Users.')
     users = s.query(User).all()
     for user in users:
         new = NewUser(username=user.username, name=user.name, email=user.email,
                       vip=user.vip, active=user.active)
-        print(new)
+        stored = new.save()
+        for c in user.consumptions.filter(Consumption.date > datetime(2013, 10, 20)):
+            try:
+                units = c.units or 1
+                new_con = NewConsumption(date=c.date, user=new, units=units,
+                                         price_per_unit=(-c.amountPaid / units))
+                stored = new_con.save()
+            except:
+                print('Error transferring {}'.format(c), c.units, c.amountPaid)
+        for t in user.payments.filter(Payment.date > datetime(2013, 10, 20)):
+            try:
+                new_t = NewTransaction(
+                    date=t.date, user=new, diff=t.amount,
+                    description='Payment of {} from {}'.format(t.amount, user.name)
+                )
+                stored = new_t.save()
+            except:
+                print("Error transferring", t)
+
+        for service in user.services.all():
+            try:
+                new_s = NewService(date=service.end_date,
+                        service_count=service.service_count, user=new)
+                new_s.save()
+            except:
+                raise
+                print("Error transferring", service)
+
+    print('Transferring expenses.')
+    for expense in s.query(BudgetChange).filter(BudgetChange.payment_id==None,
+                                                ~BudgetChange.description.like('Payment%')):
+        try:
+            new_t = NewTransaction(date=expense.date,
+                                   diff=expense.amount,
+                                   description=expense.description)
+            new_t.save()
+        except:
+            print("Error transferring", expense)

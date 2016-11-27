@@ -5,6 +5,7 @@ from peewee import (SqliteDatabase,
                     IntegerField,
                     ForeignKeyField,
                     DateField,
+                    DateTimeField,
                     DeferredRelation,
                     fn,
                     JOIN,
@@ -13,7 +14,7 @@ from peewee import (SqliteDatabase,
 from math import exp
 
 import os
-import datetime
+from datetime import datetime
 
 FILENAME = os.environ.get('DBFILE') or 'coffee.db'
 DBPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -30,7 +31,7 @@ class BaseModel(Model):
 class User(BaseModel):
     username = CharField(unique=True)
     name = CharField(null=True)
-    email = CharField(default='')
+    email = CharField(null=True)
     active = BooleanField(default=True)
     vip = BooleanField(default=False)
     admin = BooleanField(default=False)
@@ -67,12 +68,12 @@ class User(BaseModel):
     def score(self):
         services = 0
         consumptions = 1
-        now = datetime.datetime.utcnow()
+        now = datetime.now()
         for s in self.services:
             timediff = now.date() - s.date
             services += s.service_count * exp(-timediff.days / 365)
         for c in self.consumptions:
-            timediff = now.date() - c.date
+            timediff = now - c.date
             units = c.units or 0
             consumptions += units * exp(-timediff.days / 365)
         return services**3 / consumptions
@@ -95,20 +96,30 @@ class User(BaseModel):
 
 
 class Transaction(BaseModel):
-    date = DateField(default=datetime.datetime.now)
+    date = DateTimeField(default=datetime.now)
     user = ForeignKeyField(User, null=True, related_name='transactions')
     description = CharField()
     diff = IntegerField()
+
+    def __str__(self):
+        return self.description
 
 
 class Service(BaseModel):
     date = DateField()
     user = ForeignKeyField(User, related_name='services')
-    service_count = IntegerField()
+    service_count = IntegerField(default=1)
 
 
 class Consumption(BaseModel):
-    date = DateField(default=datetime.datetime.now)
+    date = DateTimeField(default=datetime.now)
     units = IntegerField(default=1)
     price_per_unit = IntegerField()
     user = ForeignKeyField(User, related_name='consumptions')
+
+    def __str__(self):
+        return '{}\'s consumtion of {} units, {} each'.format(
+            self.user.name,
+            self.units,
+            self.price_per_unit,
+        )

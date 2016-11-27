@@ -162,18 +162,16 @@ def personal_data():
 
     user = User.get(User.id==current_user.id)
     for t in user.transactions:
-        print(t.date, t.diff, t.description)
-        data.append((t.date, t.diff))
+        data.append((t.date.date(), t.diff))
 
     weekly = 0
     for c in user.consumptions:
         weekly -= c.units * c.price_per_unit
         if c.date.weekday() == 4:
-            data.append((c.date, weekly))
+            data.append((c.date.date(), weekly))
             weekly = 0
     data.append((datetime.today().date(), weekly))
 
-    print(data)
     result = []
     for (d, a) in sorted(data, key=lambda x: x[0], reverse=True):
         result.append({'date': str(d), 'amount': a})
@@ -187,7 +185,7 @@ def global_data():
     changes = Transaction.select()
     li = []
     for c in changes:
-        li.append((str(c.date), c.diff, c.description))
+        li.append((str(c.date.date()), c.diff, c.description))
     result = []
     for l in sorted(li, key=lambda x: x[0]):
         result.append({'date': l[0], 'amount': l[1], 'description': l[2]})
@@ -333,8 +331,7 @@ def administrate_consumption():
             if not app.config['DEBUG']:
                 mail.send(msg)
             else:
-                print(u'Sending mail \n{}'.format(unicode(msg.as_string(),
-                                                      'utf-8')))
+                print(u'Sending mail \n{}'.format(msg.as_string()))
             flash('Warning mail sent. Balance is {}'.format(euros(balance)))
         else:
             flash('Balance is {}. User could not be notified.'.format(euros(balance)))
@@ -367,10 +364,10 @@ def administrate_expenses():
     return redirect(url_for('admin'))
 
 
-# @app.route('/administrate/service.pdf')
+# @app.route('/admin/service.pdf')
 # @login_required
 # def administrate_service_list():
-#     services = Service.query.order_by(Service.end_date.desc())[0:5]
+#     services = Service.select().order_by(Service.date.desc())[0:5]
 #     services = list(reversed(services))
 #     string = render_template('service.tex', services=services)
 #     with codecs.open('build/service.tex', 'w', 'utf-8') as f:
@@ -390,8 +387,8 @@ def administrate_expenses():
 #     services = []
 #     users = User.query.filter(User.active, User.vip == false()).all()
 #     users = sorted(users, key=lambda x: x.score)
-#     last_service = Service.query.order_by(Service.end_date.desc()).first()
-#     last_date = last_service.end_date
+#     last_service = Service.query.order_by(Service.date.desc()).first()
+#     last_date = last_service.date
 #     for u in users[0:5]:
 #         s = Service(
 #             start=last_date + timedelta(3),
@@ -404,34 +401,36 @@ def administrate_expenses():
 #     return 'Services Updated: {}'.format(
 #         ['{}'.format(st.user.name) for st in services]
 #     )
-# 
-# 
-# @app.route('/administrate/list.pdf')
-# @login_required
-# def administrate_list():
-#     users = User.query.filter(User.active).order_by(User.name).all()
-#     for u in users:
-#         consumptions = sorted(u.consumptions.all(), key=lambda x: x.date)
-#         if (consumptions and (
-#                 datetime.utcnow() - consumptions[-1].date) > timedelta(90)):
-#             u.active = False
-#             users.remove(u)
-#     db.session.commit()
-#     string = render_template('list.tex',
-#                              current_date=datetime.utcnow(),
-#                              users=users,
-#                              vip=app.config['COFFEE_VIPS'])
-#     with codecs.open('build/list.tex', 'w', 'utf-8') as f:
-#         f.write(string)
-#     p = Popen(
-#         '/Library/Tex/texbin/lualatex --interaction=batchmode'
-#         ' --output-directory=build build/list.tex',
-#         shell=True
-#     )
-#     p.wait()
-#     return send_from_directory('build', 'list.pdf')
-# 
-# 
+
+
+@app.route('/admin/list.pdf')
+@login_required
+def administrate_list():
+    users = []
+    for u in User.select().where(User.active | User.vip).order_by(User.name):
+        consumptions = sorted(u.consumptions, key=lambda x: x.date)
+        if not u.vip and (consumptions and (
+                datetime.utcnow() - consumptions[-1].date) > timedelta(90)):
+            u.active = False
+            u.save()
+        else:
+            users.append(u)
+    print([str(u) for u in users])
+    string = render_template('list.tex',
+                             current_date=datetime.utcnow(),
+                             users=users,
+                             vip=list(User.select(User.name).where(User.vip)))
+    with codecs.open('build/list.tex', 'w', 'utf-8') as f:
+        f.write(string)
+    p = Popen(
+        '/Library/Tex/texbin/lualatex --interaction=batchmode'
+        ' --output-directory=build build/list.tex',
+        shell=True
+    )
+    p.wait()
+    return send_from_directory('build', 'list.pdf')
+
+
 @app.route("/logout")
 def logout():
     logout_user()
