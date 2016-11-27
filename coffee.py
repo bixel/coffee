@@ -2,7 +2,7 @@
 
 from __future__ import division, unicode_literals
 
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta
 from ldap3 import Server, Connection
 from wtforms import (StringField,
                      PasswordField,
@@ -18,8 +18,6 @@ from wtforms import (StringField,
 from wtforms import Form as NoCsrfForm
 from wtforms.fields.html5 import DateField
 
-import json
-
 from jinja2 import evalcontextfilter
 
 from flask import (Flask,
@@ -30,6 +28,7 @@ from flask import (Flask,
                    request,
                    send_from_directory,
                    flash,
+                   jsonify,
                    abort)
 from flask_login import (LoginManager,
                          login_user,
@@ -127,11 +126,10 @@ def index():
     target_budget = (
         Consumption
         .select(fn.SUM(Consumption.units * Consumption.price_per_unit))
-        .scalar()
-        +
+        .scalar() +
         Transaction
         .select(fn.SUM(Transaction.diff))
-        .where(Transaction.user==None)
+        .where(Transaction.user == None)  # noqa
         .scalar())
     actual_budget = Transaction.select(fn.SUM(Transaction.diff)).scalar()
 
@@ -145,7 +143,7 @@ def index():
 @app.route('/personal/')
 @login_required
 def personal():
-    user = User.get(User.username==current_user.username)
+    user = User.get(User.username == current_user.username)
     balance = user.balance
     if balance > 0:
         balance_type = 'positive'
@@ -160,7 +158,7 @@ def personal():
 def personal_data():
     data = []
 
-    user = User.get(User.id==current_user.id)
+    user = User.get(User.id == current_user.id)
     for t in user.transactions:
         data.append((t.date.date(), t.diff))
 
@@ -176,7 +174,7 @@ def personal_data():
     for (d, a) in sorted(data, key=lambda x: x[0], reverse=True):
         result.append({'date': str(d), 'amount': a})
 
-    return json.dumps(result)
+    return jsonify(data=result)
 
 
 @app.route('/global_data.json')
@@ -189,7 +187,7 @@ def global_data():
     result = []
     for l in sorted(li, key=lambda x: x[0]):
         result.append({'date': l[0], 'amount': l[1], 'description': l[2]})
-    return json.dumps(result)
+    return jsonify(data=result)
 
 
 def ldap_login(username, password, remember=False):
@@ -273,7 +271,7 @@ def submit_payment():
 
     uid = pform.uid.data
     amount = float(pform.amount.data) * 100
-    user = User.get(User.id==uid)
+    user = User.get(User.id == uid)
     transaction = Transaction(user=user, diff=amount,
                               description='{} payment from {}'
                               .format(euros(amount), user.name))
@@ -307,12 +305,12 @@ def administrate_consumption():
         return 'Form not valid'
 
     uid = cform.uid.data
-    user = User.get(User.id==uid)
+    user = User.get(User.id == uid)
     user.active = True
     user.save()
 
     # Check if there was any useful input
-    if not True in [x and x > 0 for x in cform.units.data]:
+    if True not in [x and x > 0 for x in cform.units.data]:
         flash('No updates given.')
         return redirect(url_for('admin'))
 
@@ -342,6 +340,15 @@ def administrate_consumption():
 @app.route("/app/")
 def mobile_app():
     return render_template('app.html')
+
+
+@app.route("/app/api/<function>/")
+def api(function):
+    if function == 'user_list':
+        users = [{'name': u.name,
+                  'id': u.id,
+                  } for u in User.select().where(User.active)]
+        return jsonify(users=users)
 
 
 @app.route("/administrate/expenses", methods=['POST'])
@@ -384,8 +391,8 @@ def administrate_expenses():
 #     )
 #     p.wait()
 #     return send_from_directory('build', 'service.pdf')
-# 
-# 
+#
+#
 # @app.route('/administrate/service/update/')
 # @login_required
 # def administrate_service_update():
