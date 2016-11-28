@@ -2,23 +2,27 @@
 {% block body %}
 <nav class="navbar navbar-light bg-faded">
   <div class="container">
-    <a class="navbar-brand" href="{{ url_for('index') }}">
-      E5 Ministry of Coffee Affairs
-    </a>
-    <ul class="nav navbar-nav">
-      {%- for endpoint, caption in [
-        ('index', 'Global'),
-        ('personal', 'Personal'),
-        ('admin', 'Admin'),
-      ] %}
-        <li class="nav-item{% if endpoint == request.endpoint %} active{% endif
-        %}"><a class="nav-link" href={{ url_for(endpoint) }}>{{ caption }}</a>
-      {%- endfor %}
-      {% block admin_navbar %}
-      {% endblock %}
-      <li class="nav-item float-xs-right">
-        <a href="/logout" class="btn btn-default navbar-btn">Logout</a>
-    </ul>
+    <button class="navbar-toggler hidden-lg-up" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation"></button>
+    <div class="collapse navbar-toggleable-md" id="navbarResponsive">
+      <a class="navbar-brand" href="{{ url_for('index') }}">
+        E5 Ministry of Coffee Affairs
+      </a>
+      <ul class="nav navbar-nav">
+        {%- for endpoint, caption in [
+          ('index', 'Global'),
+          ('personal', 'Personal'),
+          ('admin', 'Admin'),
+        ] %}
+          <li class="nav-item{% if endpoint == request.endpoint %} active{% endif
+          %}"><a class="nav-link" href={{ url_for(endpoint) }}>{{ caption }}</a>
+        {%- endfor %}
+        {% block admin_navbar %}
+        {% endblock %}
+        <li class="nav-item float-xs-right">
+          <a href="/logout" class="btn btn-default navbar-btn">Logout</a>
+        </li>
+      </ul>
+    </div>
   </div>
 </nav>
 

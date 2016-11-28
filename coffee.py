@@ -53,7 +53,7 @@ app = Flask(__name__)
 login_manager = LoginManager()
 app.config.from_object('config')
 app.config.from_envvar('COFFEE_SETTINGS', silent=True)
-admin = Admin(app, name='E5 MoCA DB ADMIN', template_mode='bootstrap3', url='/admin/db/')
+admin = Admin(app, name='E5 MoCA DB ADMIN', template_mode='bootstrap3', url='/admin/db')
 
 login_manager.init_app(app)
 
@@ -455,8 +455,7 @@ def ldap_authenticate(username, password):
     base_dn = app.config['LDAP_SEARCH_BASE']
     ldap_conn = Connection(ldap_server,
                            "uid={},cn=users,{}".format(username, base_dn),
-                           password,
-                           auto_bind=True)
+                           password)
     if ldap_conn.search(base_dn,
                         '(&(objectclass=person)(uid={}))'.format(username),
                         attributes=['mail', 'cn']):
