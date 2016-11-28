@@ -184,14 +184,14 @@ if __name__ == '__main__':
 
     print('Transferring currently active Users.')
     users = s.query(User).all()
-    dropped_balance = 0
     for user in users:
         new = NewUser(username=user.username, name=user.name, email=user.email,
                       vip=user.vip, active=user.active)
-        if(user.consumptions.filter(Consumption.date > DB_DATE).count()
-           or user.payments.filter(Payment.date > DB_DATE).count()):
-            stored = new.save()
-            for c in user.consumptions.filter(Consumption.date > DB_DATE):
+        stored = new.save()
+
+        past_consume = 0
+        for c in user.consumptions:
+            if c.date >= DB_DATE:
                 try:
                     units = c.units or 1
                     new_con = NewConsumption(date=c.date, user=new, units=units,
@@ -199,7 +199,12 @@ if __name__ == '__main__':
                     stored = new_con.save()
                 except:
                     print('Error transferring {}'.format(c), c.units, c.amountPaid)
-            for t in user.payments.filter(Payment.date > DB_DATE):
+            else:
+                past_consume += c.amountPaid
+
+        past_payments = 0
+        for t in user.payments:
+            if t.date >= DB_DATE:
                 try:
                     new_t = NewTransaction(
                         date=t.date, user=new, diff=t.amount,
@@ -208,23 +213,27 @@ if __name__ == '__main__':
                     stored = new_t.save()
                 except:
                     print("Error transferring", t)
+            else:
+                past_payments += t.amount
 
-            for service in user.services.all():
-                try:
-                    new_s = NewService(date=service.end_date,
-                            service_count=service.service_count, user=new)
-                    new_s.save()
-                except:
-                    raise
-                    print("Error transferring", service)
-        else:
-            print('dropping', user, user.balance)
-            dropped_balance += user.balance
-    print('Dropped users with total balance of ', dropped_balance)
+        past_balance = past_payments + past_consume
+        if past_balance:
+            new_t = NewTransaction(date=DB_DATE, user=new, diff=past_balance,
+                                   description='{} Budget from old database'.format(past_balance))
+            print(new_t)
+            new_t.save()
+
+        for service in user.services.all():
+            try:
+                new_s = NewService(date=service.end_date,
+                        service_count=service.service_count, user=new)
+                new_s.save()
+            except:
+                raise
+                print("Error transferring", service)
 
     print('Transferring expenses.')
-    for expense in s.query(BudgetChange).filter(BudgetChange.payment_id==None,
-                                                ~BudgetChange.description.like('Payment%')):
+    for expense in s.query(BudgetChange).filter(BudgetChange.payment_id==None, ~BudgetChange.description.like('Payment from%')):
         try:
             new_t = NewTransaction(date=expense.date,
                                    diff=expense.amount,
