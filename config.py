@@ -1,7 +1,7 @@
 # coding=utf-8
 
 DEBUG = True
-USE_LDAP = False
+USE_LDAP = True
 SECRET_KEY = 'p:0+\'.p)X_(p'
 SQLALCHEMY_DATABASE_URI = 'sqlite:///coffee.db'
 COFFEE_PRICES = [

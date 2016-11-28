@@ -91,6 +91,15 @@ class User(BaseModel):
         users = User.select().order_by(User.username)
         return map(lambda u: (u.id, u.name), users)
 
+    def delete_instance(self, *args, **kwargs):
+        guest_user, created = User.get_or_create(username='DELETED_USERS', defaults={
+            'name': 'Nutzersammeltonne',
+            'active': False,
+        })
+        Transaction.update(user=guest_user).where(Transaction.user==self).execute()
+        Consumption.update(user=guest_user).where(Consumption.user==self).execute()
+        return super(User, self).delete_instance(*args, **kwargs)
+
     def __str__(self):
         return 'User `{}`'.format(self.username)
 
