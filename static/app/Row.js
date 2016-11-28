@@ -1,4 +1,5 @@
 import React, {Component} from 'react';
+import AddButton from './AddButton.js';
 
 const CoffeeMug = () => (
   <span style={{padding: "4px"}}>
@@ -9,55 +10,18 @@ const CoffeeMug = () => (
 export default class Row extends Component {
   constructor(props, context){
     super(props, context);
-    this.state = {
-      productStack: {},
-    }
   }
 
-  addConsumption(product){
-    let stack = this.state.productStack;
-    if(stack[product]){
-      stack[product].push(product);
-    } else {
-      stack[product] = [product];
-    }
-    this.setState({
-      productStack: stack,
-    });
-    console.log("add", product);
-  }
-
-  undoConsumption(product){
-    let stack = this.state.productStack;
-    if(stack[product]){
-      stack[product].pop();
-      this.setState({
-        productStack: stack,
-      })
-      console.log(stack);
-    }
-    console.log("undo", product);
+  modifyDatabase(db_entry){
+    this.props.modifyDatabase(db_entry);
   }
 
   render(){
-    const stack = this.state.productStack;
     const buttons = this.props.products.map((product, i) => {
-      const addButton = (
-        <button type="button" className="btn btn-primary"
-          onClick={() => this.addConsumption(product)}>
-          {product}
-        </button>
-      );
-      const undoButton = stack[product] && stack[product].length ? (
-        <button type="button" className="btn btn-secondary"
-          onClick={() => this.undoConsumption(product)}>
-          undo
-        </button>
-      ) : '';
-      return <div className="btn-group" key={i}>
-        {addButton}{undoButton}
-      </div>
-    })
+      const addButton = <AddButton product={product} key={product.name} name={this.props.name}
+                         modifyDatabase={(cur_consumption) => this.modifyDatabase(cur_consumption)}/>
+      return addButton;
+      });
     const mugs = [...Array(+this.props.consume)].map((_, i) => (<CoffeeMug key={i} />))
     return <div className="row" style={this.props.style}>
       <div className="col-xs-3" style={{marginTop: '6px'}}>{this.props.name}</div>

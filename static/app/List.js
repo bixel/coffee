@@ -1,16 +1,24 @@
 import React, {Component} from 'react';
 import Row from './Row.js';
+import AddButton from './AddButton.js';
 
 export default class List extends Component {
   constructor(props, context){
     super(props, context);
     this.state = {
       products: [
-        "Kaffee",
-        "Milchkaffee",
+        {name: "Kaffee", icon: "☕️"},
+        {name: "Milchkaffee", icon: "☕️+🍼"},
       ],
-      users: [],
+      users: ["Timon",
+              "Kevin",
+              "Moritz"],
     };
+  }
+
+  handleModifyDatabase(db_entry){
+    console.log("Modifying the DB. Object:");
+    console.log(db_entry);
   }
 
   render(){
@@ -19,8 +27,10 @@ export default class List extends Component {
       return <Row
         products={this.state.products}
         name={user}
+        key={user}
         consume="5"
         style={{background: background, padding: "4px"}}
+        modifyDatabase={(db_entry) => this.handleModifyDatabase(db_entry)}
       />
     })
     return <div className="container">
