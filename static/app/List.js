@@ -39,8 +39,7 @@ export default class List extends Component {
       </div></div>
       <div className="row">
         <div className="col-xs-3"><h4>Name</h4></div>
-        <div className="col-xs-3"><h4>Kaffee Heute</h4></div>
-        <div className="col-xs-6"></div>
+        <div className="col-xs-9"><h4>Kaffee Heute</h4></div>
       </div>
       {rows}
     </div>

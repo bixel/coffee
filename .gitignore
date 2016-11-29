@@ -4,3 +4,4 @@ coffee.db
 *.pyc
 build/
 node_modules/
+*.jpg
