@@ -1,4 +1,10 @@
 import React, {Component} from 'react';
+import { Icon } from './Icon.js'
+
+const successIconLink = {icon: "http://image.flaticon.com/icons/svg/148/148767.svg",
+                         name: "Success"};
+const errorIconLink = {icon: "http://image.flaticon.com/icons/svg/148/148766.svg",
+                       name: "Error"};
 
 export default class AddButton extends Component {
   constructor(props, context){
@@ -54,16 +60,21 @@ export default class AddButton extends Component {
 
   render() {
     const addButtonText = this.state.cur_consumption === 0 ?
-        this.props.product.icon :
-        this.props.product.icon + " (+" + this.state.cur_consumption + ")";
+        <Icon product={this.props.product} /> :
+        <div>
+          <Icon product={this.props.product} />  {" (+" + this.state.cur_consumption + ")"}
+        </div>
     const addButton =
         <button type="button" className="btn btn-primary" onClick={() => this.modifyConsumption(+1)}>
             {addButtonText}
         </button>
 
     const undoButtonText = this.state.cur_undo_time > 0 ?
-        "Rückgängig?" + " (" + this.state.cur_undo_time.toString() + ")":
-        "✅";
+      <div>
+        <Icon product={errorIconLink} /> {" (" + this.state.cur_undo_time.toString() + ")"}
+      </div>
+        :
+        <Icon product={successIconLink} />;
     const undoButton = (this.state.cur_consumption === 0 || this.state.cur_undo_time < 0) ? null :
         <button type="button" className="btn btn-secondary" onClick={() => this.modifyConsumption(-1)}>
             {undoButtonText}

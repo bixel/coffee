@@ -7,8 +7,8 @@ export default class List extends Component {
     super(props, context);
     this.state = {
       products: [
-        {name: "Kaffee", icon: "☕️"},
-        {name: "Milchkaffee", icon: "☕️+🍼"},
+        {name: "Kaffee", icon: "http://image.flaticon.com/icons/svg/190/190883.svg"},
+        {name: "Milchkaffee", icon: "http://image.flaticon.com/icons/svg/190/190880.svg"},
       ],
       users: ["Timon",
               "Kevin",
@@ -23,7 +23,7 @@ export default class List extends Component {
 
   render(){
     const rows = this.state.users.map((user, i) => {
-      const background = (i + 1) % 2 ? "#E1EBCE" : "";
+      const background = (i + 1) % 2 ? "#E3EBDE" : "";
       return <Row
         products={this.state.products}
         name={user}
