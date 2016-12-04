@@ -471,4 +471,4 @@ if __name__ == '__main__':
     if db.is_closed():
         db.connect()
         db.create_tables([User, Transaction, Consumption, Service], safe=True)
-    app.run(host='localhost', port=5001)
+    app.run(host=app.config['SERVER'], port=app.config['PORT'])
