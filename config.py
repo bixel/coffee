@@ -1,7 +1,7 @@
 import os
 
-DEBUG = os.environ.get("COFFEE_DEBUG", True) == True
-USE_LDAP = os.environ.get("COFFEE_LDAP", True) == True
+DEBUG = os.environ.get("COFFEE_DEBUG", 'False') == 'True'
+USE_LDAP = os.environ.get("COFFEE_LDAP", 'True') == 'True'
 SECRET_KEY = 'p:0+\'.p)X_(p'
 SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.environ.get('COFFEE_DB', 'coffee.db')
 COFFEE_PRICES = [

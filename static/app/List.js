@@ -21,6 +21,16 @@ export default class List extends Component {
     console.log(db_entry);
   }
 
+  componentDidMount(){
+    console.log('mount');
+    $.getJSON('/app/api/user_list/', (data) => {
+      const users = data.users.map(u => (u.name));
+      this.setState({
+        users: users,
+      });
+    });
+  }
+
   render(){
     const rows = this.state.users.map((user, i) => {
       const background = (i + 1) % 2 ? "#E3EBDE" : "";
