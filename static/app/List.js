@@ -58,7 +58,6 @@ export default class List extends Component {
       />
     })
     return <div className="container">
-      {'Foo'}
       <div className="row"><div className="col-xs-12">
         <h1>Kaffeeliste</h1>
       </div></div>
