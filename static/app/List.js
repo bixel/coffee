@@ -7,8 +7,8 @@ export default class List extends Component {
     super(props, context);
     this.state = {
       products: [
-        {name: "Kaffee", icon: "http://image.flaticon.com/icons/svg/190/190883.svg"},
-        {name: "Milchkaffee", icon: "http://image.flaticon.com/icons/svg/190/190880.svg"},
+        {name: "Kaffee", icon: "https://image.flaticon.com/icons/svg/190/190883.svg"},
+        {name: "Milchkaffee", icon: "https://image.flaticon.com/icons/svg/190/190880.svg"},
       ],
       users: ["Timon",
               "Kevin",
@@ -23,8 +23,14 @@ export default class List extends Component {
 
   componentDidMount(){
     console.log('mount');
-    $.getJSON('/app/api/user_list/', (data) => {
-      const users = data.users.map(u => (u.name));
+    const url = window.location.href;
+    $.getJSON(url + 'api/user_list/', (data) => {
+      const users = data.users.map(u => ({
+        name: u.name,
+        consume: u.consume,
+        id: u.id,
+      }));
+      console.log(users);
       this.setState({
         users: users,
       });
@@ -36,9 +42,9 @@ export default class List extends Component {
       const background = (i + 1) % 2 ? "#E3EBDE" : "";
       return <Row
         products={this.state.products}
-        name={user}
-        key={user}
-        consume="5"
+        name={user.name}
+        key={user.id}
+        consume={user.consume}
         style={{background: background, padding: "4px"}}
         modifyDatabase={(db_entry) => this.handleModifyDatabase(db_entry)}
       />

@@ -1,9 +1,9 @@
 import React, {Component} from 'react';
 import { Icon } from './Icon.js'
 
-const successIconLink = {icon: "http://image.flaticon.com/icons/svg/148/148767.svg",
+const successIconLink = {icon: "https://image.flaticon.com/icons/svg/148/148767.svg",
                          name: "Success"};
-const errorIconLink = {icon: "http://image.flaticon.com/icons/svg/148/148766.svg",
+const errorIconLink = {icon: "https://image.flaticon.com/icons/svg/148/148766.svg",
                        name: "Error"};
 
 export default class AddButton extends Component {

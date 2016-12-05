@@ -355,8 +355,13 @@ def mobile_app():
 @bp.route("/app/api/<function>/")
 def api(function):
     if function == 'user_list':
+        today = datetime.now().replace(hour=0, minute=0)
         users = [{'name': u.name,
                   'id': u.id,
+                  'consume': (u.consumptions
+                      .select(fn.SUM(Consumption.units))
+                      .where(Consumption.date >= today)
+                      .scalar() or 0)
                   } for u in User.select().where(User.active)]
         return jsonify(users=users)
 
