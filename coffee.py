@@ -126,6 +126,7 @@ def is_admin():
 
 
 @bp.route('/', methods=['GET', 'POST'])
+@login_required
 def index():
     coffee_prices = app.config['COFFEE_PRICES']
     target_budget = (
