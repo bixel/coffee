@@ -3,7 +3,7 @@ import os
 DEBUG = os.environ.get("COFFEE_DEBUG", 'False') == 'True'
 USE_LDAP = os.environ.get("COFFEE_LDAP", 'True') == 'True'
 SECRET_KEY = 'p:0+\'.p)X_(p'
-SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.environ.get('COFFEE_DB', 'coffee.db')
+DATABASE_FILE = os.environ.get('COFFEE_DB', 'coffee.db')
 COFFEE_PRICES = [
     [30, u'Kaffee'],
     [50, u'Milchkaffee']
@@ -24,3 +24,5 @@ MAIL_PASSWORD = 'i4subpih'
 MAIL_DEFAULT_SENDER = 'igor.babuschkin@udo.edu'
 
 BUDGET_WARN_BELOW = 0
+
+APPLICATION_ROOT = os.environ.get('COFFEE_BASEURL')

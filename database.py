@@ -16,9 +16,10 @@ from math import exp
 import os
 from datetime import datetime
 
-FILENAME = os.environ.get('DBFILE') or 'coffee.db'
+from config import DATABASE_FILE
+
 DBPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                      FILENAME)
+                      DATABASE_FILE)
 
 db = SqliteDatabase(DBPATH)
 
