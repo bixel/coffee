@@ -54,7 +54,7 @@ app = Flask(__name__)
 app.config.from_object('config')
 app.config.from_envvar('COFFEE_SETTINGS', silent=True)
 
-bp = Blueprint('coffee', __name__, template_folder='templates')
+bp = Blueprint('coffee', __name__, template_folder='templates', static_folder='static')
 
 login_manager = LoginManager(app)
 login_manager.login_view = 'coffee.login'
