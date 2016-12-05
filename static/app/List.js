@@ -16,23 +16,30 @@ export default class List extends Component {
     };
   }
 
-  handleModifyDatabase(db_entry){
-    console.log("Modifying the DB. Object:");
-    console.log(db_entry);
+  addConsumption(db_entry){
+    const url = window.location.href;
+    $.post({
+      url: url + 'api/add_consumption/',
+      data: JSON.stringify(db_entry),
+      success: data => {
+        if(data.users){
+          this.setState({
+            users: data.users,
+          });
+        }
+      },
+      contentType: 'application/json; charset=utf-8',
+      dataType: 'json',
+    }).fail(error => {
+      console.log('error', error);
+    });
   }
 
   componentDidMount(){
-    console.log('mount');
     const url = window.location.href;
     $.getJSON(url + 'api/user_list/', (data) => {
-      const users = data.users.map(u => ({
-        name: u.name,
-        consume: u.consume,
-        id: u.id,
-      }));
-      console.log(users);
       this.setState({
-        users: users,
+        users: data.users,
       });
     });
   }
@@ -43,13 +50,15 @@ export default class List extends Component {
       return <Row
         products={this.state.products}
         name={user.name}
-        key={user.id}
+        key={i}
+        userId={user.id}
         consume={user.consume}
         style={{background: background, padding: "4px"}}
-        modifyDatabase={(db_entry) => this.handleModifyDatabase(db_entry)}
+        modifyDatabase={(db_entry) => this.addConsumption(db_entry)}
       />
     })
     return <div className="container">
+      {'Foo'}
       <div className="row"><div className="col-xs-12">
         <h1>Kaffeeliste</h1>
       </div></div>

@@ -5,6 +5,34 @@ const successIconLink = {icon: "https://image.flaticon.com/icons/svg/148/148767.
                          name: "Success"};
 const errorIconLink = {icon: "https://image.flaticon.com/icons/svg/148/148766.svg",
                        name: "Error"};
+const styles = {
+  addButtonNormal: {
+    width: '100px',
+  },
+  addButtonCanUndo: {
+    width: '60px',
+  },
+  undoButton: {
+    width: '40px',
+    padding: '8px 4px',
+  },
+  badgeStyle: {
+    position: 'absolute',
+    right: '-10px',
+    top: '-10px',
+    color: 'white',
+    width: '20px',
+    height: '20px',
+    background: '#D75A4A',
+    borderRadius: '10px',
+  },
+}
+
+const Badge = ({children}) => (
+  <div style={styles.badgeStyle}>
+    {children}
+  </div>
+);
 
 export default class AddButton extends Component {
   constructor(props, context){
@@ -44,7 +72,7 @@ export default class AddButton extends Component {
         this.setState({
             cur_consumption : 0,
         });
-   }
+    }
     this.setState({
         cur_undo_time: cur_undo_time,
     });
@@ -59,26 +87,28 @@ export default class AddButton extends Component {
   }
 
   render() {
-    const addButtonText = this.state.cur_consumption === 0 ?
-        <Icon product={this.props.product} /> :
-        <div>
-          <Icon product={this.props.product} />  {" (+" + this.state.cur_consumption + ")"}
-        </div>
-    const addButton =
-        <button type="button" className="btn btn-primary" onClick={() => this.modifyConsumption(+1)}>
-            {addButtonText}
-        </button>
-
     const undoButtonText = this.state.cur_undo_time > 0 ?
-      <div>
-        <Icon product={errorIconLink} /> {" (" + this.state.cur_undo_time.toString() + ")"}
-      </div>
-        :
-        <Icon product={successIconLink} />;
-    const undoButton = (this.state.cur_consumption === 0 || this.state.cur_undo_time < 0) ? null :
-        <button type="button" className="btn btn-secondary" onClick={() => this.modifyConsumption(-1)}>
-            {undoButtonText}
-        </button>
+      <Icon product={errorIconLink} /> :
+      <Icon product={successIconLink} />;
+    const undoButton = (this.state.cur_consumption === 0 || this.state.cur_undo_time < 0) ?
+      null :
+      <button
+        type="button"
+        className="btn btn-secondary"
+        style={styles.undoButton}
+        onClick={() => this.modifyConsumption(-1)}>
+          {undoButtonText}<Badge>{this.state.cur_undo_time}</Badge>
+      </button>;
+
+    const addButtonText = <Icon product={this.props.product} />;
+    const addButton =
+        <button
+          type="button"
+          className="btn btn-primary"
+          style={undoButton ? styles.addButtonCanUndo : styles.addButtonNormal}
+          onClick={() => this.modifyConsumption(+1)}>
+            {addButtonText}
+        </button>;
 
 
     return (

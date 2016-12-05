@@ -353,18 +353,31 @@ def mobile_app():
     return render_template('app.html')
 
 
-@bp.route("/app/api/<function>/")
+@bp.route("/app/api/<function>/", methods=['GET', 'POST'])
 def api(function):
-    if function == 'user_list':
+
+    def get_userlist():
+        # always calculate user list
         today = datetime.now().replace(hour=0, minute=0)
-        users = [{'name': u.name,
-                  'id': u.id,
-                  'consume': (u.consumptions
-                      .select(fn.SUM(Consumption.units))
-                      .where(Consumption.date >= today)
-                      .scalar() or 0)
-                  } for u in User.select().where(User.active)]
-        return jsonify(users=users)
+        return [{'name': u.name,
+                 'id': u.id,
+                 'consume': (u.consumptions
+                     .select(fn.SUM(Consumption.units))
+                     .where(Consumption.date >= today)
+                     .scalar() or 0)
+                 } for u in User.select().where(User.active)]
+
+    if function == 'user_list':
+        return jsonify(users=get_userlist())
+
+    if function == 'add_consumption':
+        data = request.get_json()
+        prices = {price[1]: price[0] for price in app.config['COFFEE_PRICES']}
+        created = Consumption(user=data['id'],
+                              price_per_unit=prices[data['consumption_type']],
+                              units=data['cur_consumption'],
+                              date=datetime.now()).save()
+        return jsonify(status='success', users=get_userlist())
 
 
 @bp.route("/administrate/expenses", methods=['POST'])
@@ -465,17 +478,20 @@ def logout():
 
 
 def ldap_authenticate(username, password):
-    ldap_server = Server(app.config['LDAP_HOST'], port=app.config['LDAP_PORT'])
-    base_dn = app.config['LDAP_SEARCH_BASE']
-    ldap_conn = Connection(ldap_server,
-                           "uid={},cn=users,{}".format(username, base_dn),
-                           password)
-    if ldap_conn.search(base_dn,
-                        '(&(objectclass=person)(uid={}))'.format(username),
-                        attributes=['mail', 'cn']):
-        return ldap_conn.entries
-    else:
-        return None
+    try:
+        ldap_server = Server(app.config['LDAP_HOST'], port=app.config['LDAP_PORT'])
+        base_dn = app.config['LDAP_SEARCH_BASE']
+        ldap_conn = Connection(ldap_server,
+                               "uid={},cn=users,{}".format(username, base_dn),
+                               password)
+        if ldap_conn.search(base_dn,
+                            '(&(objectclass=person)(uid={}))'.format(username),
+                            attributes=['mail', 'cn']):
+            return ldap_conn.entries
+    except:
+        pass
+
+    return None
 
 
 login_manager.login_view = 'login'
