@@ -29,6 +29,7 @@ from flask import (Flask,
                    send_from_directory,
                    flash,
                    jsonify,
+                   Blueprint,
                    abort)
 from flask_login import (LoginManager,
                          login_user,
@@ -50,16 +51,21 @@ from math import exp
 from database import User, Transaction, Service, Consumption, db
 
 app = Flask(__name__)
-login_manager = LoginManager()
 app.config.from_object('config')
 app.config.from_envvar('COFFEE_SETTINGS', silent=True)
-admin = Admin(app, name='E5 MoCA DB ADMIN', template_mode='bootstrap3', url='/admin/db')
 
-login_manager.init_app(app)
+bp = Blueprint('coffee', __name__, template_folder='templates')
+
+login_manager = LoginManager(app)
+login_manager.login_view = 'coffee.login'
+login_manager.blueprint_login_views = {
+    'coffee': 'coffee.login',
+}
 
 mail = Mail()
 mail.init_app(app)
 
+admin = Admin(app, name='E5 MoCA DB ADMIN', template_mode='bootstrap3', url=app.config['BASEURL'] + '/admin/db')
 admin.add_view(ModelView(User))
 admin.add_view(ModelView(Transaction))
 admin.add_view(ModelView(Service))
@@ -119,8 +125,7 @@ def is_admin():
     return current_user.admin or app.config['DEBUG']
 
 
-@app.route('/', methods=['GET', 'POST'])
-@login_required
+@bp.route('/', methods=['GET', 'POST'])
 def index():
     coffee_prices = app.config['COFFEE_PRICES']
     target_budget = (
@@ -140,7 +145,7 @@ def index():
     )
 
 
-@app.route('/personal/')
+@bp.route('/personal/')
 @login_required
 def personal():
     user = User.get(User.username == current_user.username)
@@ -153,7 +158,7 @@ def personal():
                            balance_type=balance_type)
 
 
-@app.route('/personal_data.json')
+@bp.route('/personal_data.json')
 @login_required
 def personal_data():
     data = []
@@ -177,7 +182,7 @@ def personal_data():
     return jsonify(data=result)
 
 
-@app.route('/global_data.json')
+@bp.route('/global_data.json')
 @login_required
 def global_data():
     changes = Transaction.select()
@@ -213,7 +218,7 @@ def ldap_login(username, password, remember=False):
         return False
 
 
-@app.route("/login", methods=['GET', 'POST'])
+@bp.route("/login", methods=['GET', 'POST'])
 def login():
     form = LoginForm()
     if form.validate_on_submit():
@@ -222,7 +227,7 @@ def login():
         remember = form.remember.data
         if not ldap_login(username, password, remember=remember):
             return '<h1>Login failed</h1>'
-        return redirect(url_for('index'))
+        return redirect(url_for('coffee.index'))
     return render_template('login.html', form=form)
 
 
@@ -237,7 +242,7 @@ def get_listofshame():
     return li
 
 
-@app.route('/admin/')
+@bp.route('/admin/')
 @login_required
 def admin():
     if not is_admin():
@@ -257,7 +262,7 @@ def admin():
                            listofshame=listofshame)
 
 
-@app.route("/admin/payment/", methods=['POST'])
+@bp.route("/admin/payment/", methods=['POST'])
 @login_required
 def submit_payment():
     if not is_admin():
@@ -267,7 +272,7 @@ def submit_payment():
     pform.uid.choices = User.get_uids()
     if not pform.validate_on_submit():
         flash('Payment invalid.')
-        return redirect(url_for('admin'))
+        return redirect(url_for('coffee.admin'))
 
     uid = pform.uid.data
     amount = float(pform.amount.data) * 100
@@ -290,10 +295,10 @@ def submit_payment():
         else:
             print(u'Sending mail \n{}'.format(msg.as_string()))
 
-    return redirect(url_for('admin'))
+    return redirect(url_for('coffee.admin'))
 
 
-@app.route("/administrate/consumption", methods=['POST'])
+@bp.route("/administrate/consumption", methods=['POST'])
 @login_required
 def administrate_consumption():
     if not is_admin():
@@ -312,7 +317,7 @@ def administrate_consumption():
     # Check if there was any useful input
     if True not in [x and x > 0 for x in cform.units.data]:
         flash('No updates given.')
-        return redirect(url_for('admin'))
+        return redirect(url_for('coffee.admin'))
 
     for u, c in zip(cform.units.data, app.config['COFFEE_PRICES']):
         if(u):
@@ -334,15 +339,15 @@ def administrate_consumption():
         else:
             flash('Balance is {}. User could not be notified.'.format(euros(balance)))
 
-    return redirect(url_for('admin'))
+    return redirect(url_for('coffee.admin'))
 
 
-@app.route("/app/")
+@bp.route("/app/")
 def mobile_app():
     return render_template('app.html')
 
 
-@app.route("/app/api/<function>/")
+@bp.route("/app/api/<function>/")
 def api(function):
     if function == 'user_list':
         users = [{'name': u.name,
@@ -351,7 +356,7 @@ def api(function):
         return jsonify(users=users)
 
 
-@app.route("/administrate/expenses", methods=['POST'])
+@bp.route("/administrate/expenses", methods=['POST'])
 @login_required
 def administrate_expenses():
     if not is_admin():
@@ -363,7 +368,7 @@ def administrate_expenses():
             for error in errors:
                 flash(u'Error in the %s field - %s'
                       % (getattr(eform, field).label.text, error))
-        return redirect(url_for('admin'))
+        return redirect(url_for('coffee.admin'))
 
     description = eform.description.data
     amount = eform.amount.data
@@ -373,7 +378,7 @@ def administrate_expenses():
     t = Transaction(diff=100 * amount, date=date, description=description)
     t.save()
     flash('Transaction stored.')
-    return redirect(url_for('admin'))
+    return redirect(url_for('coffee.admin'))
 
 
 # @app.route('/admin/service.pdf')
@@ -415,7 +420,7 @@ def administrate_expenses():
 #     )
 
 
-@app.route('/admin/list.pdf')
+@bp.route('/admin/list.pdf')
 @login_required
 def administrate_list():
     users = []
@@ -443,10 +448,10 @@ def administrate_list():
     return send_from_directory('build', 'list.pdf')
 
 
-@app.route("/logout")
+@bp.route("/logout")
 def logout():
     logout_user()
-    return redirect(url_for('login'))
+    return redirect(url_for('coffee.login'))
 
 
 def ldap_authenticate(username, password):
@@ -466,6 +471,8 @@ def ldap_authenticate(username, password):
 
 
 login_manager.login_view = 'login'
+
+app.register_blueprint(bp, url_prefix=app.config['BASEURL'])
 
 if __name__ == '__main__':
     if db.is_closed():

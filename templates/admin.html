@@ -26,7 +26,7 @@
 </div>
 <div class="row">
   <div class="col-md-4">
-    <form method="POST" action="{{ url_for('submit_payment')}}" class="form-signin">
+    <form method="POST" action="{{ url_for('coffee.submit_payment')}}" class="form-signin">
         {{ payment_form.hidden_tag() }}
         <h3 class="form-signin-heading">Payment</h3>
         <div class="form-group">
@@ -39,7 +39,7 @@
     </form>
   </div>
   <div class="col-md-4">
-    <form method="POST" action="/administrate/consumption" class="form-signin">
+    <form method="POST" action="{{ url_for('coffee.administrate_consumption') }}" class="form-signin">
         {{ consumption_form.hidden_tag() }}
         <h3 class="form-signin-heading">Consumption</h3>
         <div class="form-group">
@@ -54,7 +54,7 @@
     </form>
   </div>
   <div class="col-md-4">
-    <form method="POST" action="/administrate/expenses" class="form-signin">
+    <form method="POST" action="{{ url_for('coffee.administrate_expenses') }}" class="form-signin">
         {{ expense_form.hidden_tag() }}
         <h3 class="form-signin-heading">Expense</h3>
         <div class="form-group">

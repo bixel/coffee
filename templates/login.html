@@ -4,7 +4,7 @@
 <div class="container">
   <h1>E5 Ministry of Coffee Affairs</h1>
   <h2>LDAP Login</h2>
-  <form role="form" method="POST" action="/login" class="form-signin">
+  <form role="form" method="POST" action="{{ url_for('coffee.login') }}" class="form-signin">
     {{ form.hidden_tag() }}
     <div class="form-group">
       {{ form.username(class="form-control", placeholder="Username", autofocus=True) }}

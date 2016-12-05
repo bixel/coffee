@@ -26,7 +26,7 @@
     </table>
     <div id='global_graph'></div>
     <script>
-      draw_graph('/global_data.json', '#global_graph', 680, 400)
+      draw_graph('{{ url_for('coffee.global_data') }}', '#global_graph', 680, 400)
     </script>
   </div>
 </div>

@@ -8,7 +8,7 @@
 </div>
 <div class="row">
   <div class="col-md-12">
-    <form method="POST" action="{{ url_for('administrate_consumption_list') }}" class="form-horizontal">
+    <form method="POST" action="{{ url_for('coffee.administrate_consumption_list') }}" class="form-horizontal">
       {{ form.hidden_tag() }}
       {% for uform in form.users %}
       <div class="row form-group">
