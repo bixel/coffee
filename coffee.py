@@ -167,13 +167,18 @@ def personal_data():
     for t in user.transactions:
         data.append((t.date.date(), t.diff))
 
+    # calculate consumption every friday
     weekly = 0
-    for c in user.consumptions:
+    current_date = datetime.today().date()
+    last_total = current_date
+    for c in user.consumptions.order_by(Consumption.date.desc()):
+        current_date = c.date.date()
         weekly -= c.units * c.price_per_unit
-        if c.date.weekday() == 4:
-            data.append((c.date.date(), weekly))
+        if current_date < last_total:
+            data.append((last_total, weekly))
             weekly = 0
-    data.append((datetime.today().date(), weekly))
+            # use the last friday to calculate total consumption for one week
+            last_total = current_date - timedelta(days=current_date.weekday() + 3)
 
     result = []
     for (d, a) in sorted(data, key=lambda x: x[0], reverse=True):
@@ -432,7 +437,6 @@ def administrate_list():
             u.save()
         else:
             users.append(u)
-    print([str(u) for u in users])
     string = render_template('list.tex',
                              current_date=datetime.utcnow(),
                              users=users,
@@ -455,7 +459,6 @@ def logout():
 
 
 def ldap_authenticate(username, password):
-    print('Trying to authenticate {}'.format(username))
     ldap_server = Server(app.config['LDAP_HOST'], port=app.config['LDAP_PORT'])
     base_dn = app.config['LDAP_SEARCH_BASE']
     ldap_conn = Connection(ldap_server,
@@ -464,7 +467,6 @@ def ldap_authenticate(username, password):
     if ldap_conn.search(base_dn,
                         '(&(objectclass=person)(uid={}))'.format(username),
                         attributes=['mail', 'cn']):
-        print(ldap_conn.entries)
         return ldap_conn.entries
     else:
         return None

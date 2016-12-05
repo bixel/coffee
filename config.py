@@ -25,4 +25,4 @@ MAIL_DEFAULT_SENDER = 'igor.babuschkin@udo.edu'
 
 BUDGET_WARN_BELOW = 0
 
-BASEURL = os.environ.get('COFFEE_BASEURL')
+BASEURL = os.environ.get('COFFEE_BASEURL', '')

@@ -16,6 +16,8 @@ from database import Service as NewService
 from database import db
 from datetime import datetime
 
+import sys
+
 Base = declarative_base()
 
 class User(Base):
@@ -169,7 +171,7 @@ class Service(Base):
         return '<Service {} to {}>'.format(self.start_date, self.end_date)
 
 
-engine = create_engine('sqlite:///coffee.dev.db')
+engine = create_engine('sqlite:///' + sys.argv[1])
 session = sessionmaker()
 session.configure(bind=engine)
 Base.metadata.create_all(engine)
