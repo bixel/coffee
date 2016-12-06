@@ -19,10 +19,16 @@ export default class Row extends Component {
                          modifyDatabase={(cur_consumption) => this.modifyDatabase(cur_consumption)}/>
       return addButton;
       });
-    const mugs = this.props.consume ? this.props.consume.map((product, i) => (<Icon key={i} product={this.props.products[product]} />)) : '';
+    const mugs = this.props.consume ?
+      this.props.consume.map((product, i) => (
+        <Icon key={i} product={this.props.products[product]} size={24} />)
+      ) :
+      '';
     return <div className="row" style={this.props.style}>
-      <div className="col-xs-4" style={{marginTop: '6px'}}>{this.props.name}</div>
-      <div className="col-xs-3" style={{marginTop: '5px'}}>{mugs}</div>
+      <div className="col-xs-7" style={{marginTop: '6px'}}>
+        {this.props.name}<br />
+        {mugs}
+      </div>
       <div className="col-xs-5">
         <div className="btn-toolbar" style={{float: "right"}}>
           {buttons}

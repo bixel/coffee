@@ -8,12 +8,15 @@ const errorIconLink = {icon: "https://image.flaticon.com/icons/svg/148/148766.sv
 const styles = {
   addButtonNormal: {
     width: '100px',
+    height: '60px',
   },
   addButtonCanUndo: {
     width: '60px',
+    height: '60px',
   },
   undoButton: {
     width: '40px',
+    height: '60px',
     padding: '8px 4px',
   },
   badgeStyle: {
@@ -88,8 +91,8 @@ export default class AddButton extends Component {
 
   render() {
     const undoButtonText = this.state.cur_undo_time > 0 ?
-      <Icon product={errorIconLink} /> :
-      <Icon product={successIconLink} />;
+      <Icon product={errorIconLink} size={26} /> :
+      <Icon product={successIconLink} size={26} />;
     const undoButton = (this.state.cur_consumption === 0 || this.state.cur_undo_time < 0) ?
       null :
       <button
@@ -100,7 +103,7 @@ export default class AddButton extends Component {
           {undoButtonText}<Badge>{this.state.cur_undo_time}</Badge>
       </button>;
 
-    const addButtonText = <Icon product={this.props.product} />;
+    const addButtonText = <Icon product={this.props.product} size={32} />;
     const addButton =
         <button
           type="button"
@@ -109,7 +112,6 @@ export default class AddButton extends Component {
           onClick={() => this.modifyConsumption(+1)}>
             {addButtonText}
         </button>;
-
 
     return (
         <div className="btn-group">

@@ -16,9 +16,7 @@ export default class List extends Component {
           icon: "https://image.flaticon.com/icons/svg/190/190880.svg"
         },
       },
-      users: ["Timon",
-              "Kevin",
-              "Moritz"],
+      users: [],
     };
     this.url = window.location.origin + window.location.pathname;
   }
@@ -51,11 +49,16 @@ export default class List extends Component {
   }
 
   render(){
-    const rows = this.state.users.map((user, i) => {
-      const background = (i + 1) % 2 ? "#E3EBDE" : "";
+    // store the guest user for later modifications
+    let guestUser = undefined;
+    let backgroundIt = 0;
+    let rows = this.state.users.map((user, i) => {
+      const background = backgroundIt++ % 2 ? "#F8F8F8" : "";
 
       // dont show the guest user for now
       if(user.username === 'guest'){
+        backgroundIt++;
+        guestUser = user;
         return undefined;
       }
 
@@ -69,14 +72,12 @@ export default class List extends Component {
         modifyDatabase={(db_entry) => this.addConsumption(db_entry)}
       />
     })
+    // @TODO Add the guest row
+    rows.push(<div key={rows.length}>Special stuff for Guests</div>)
     return <div className="container" style={{margin: "0px", width: "100%"}}>
       <div className="row"><div className="col-xs-12">
         <h1>Kaffeeliste</h1>
       </div></div>
-      <div className="row">
-        <div className="col-xs-4"><h4>Name</h4></div>
-        <div className="col-xs-8"><h4>Kaffee Heute</h4></div>
-      </div>
       {rows}
     </div>
   }
