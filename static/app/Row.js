@@ -21,9 +21,9 @@ export default class Row extends Component {
       });
     const mugs = this.props.consume ? this.props.consume.map((product, i) => (<Icon key={i} product={this.props.products[product]} />)) : '';
     return <div className="row" style={this.props.style}>
-      <div className="col-xs-3" style={{marginTop: '6px'}}>{this.props.name}</div>
+      <div className="col-xs-4" style={{marginTop: '6px'}}>{this.props.name}</div>
       <div className="col-xs-3" style={{marginTop: '5px'}}>{mugs}</div>
-      <div className="col-xs-6">
+      <div className="col-xs-5">
         <div className="btn-toolbar" style={{float: "right"}}>
           {buttons}
         </div>

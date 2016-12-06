@@ -408,7 +408,7 @@ def api(function):
         # always calculate user list
         today = datetime.now().replace(hour=0, minute=0)
         users = []
-        for user in User.select().where(User.active):
+        for user in User.select().where(User.active).order_by(User.vip.desc(), User.name):
             user_dict = {
                 'name': user.name,
                 'username': user.username,
