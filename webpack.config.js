@@ -11,6 +11,7 @@ const config = {
   output: {
     path: buildPath, // Path of output file
     filename: 'app.js',
+    publicPath: '/dev-bundle/',
   },
   module: {
     loaders: [

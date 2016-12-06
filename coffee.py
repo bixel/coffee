@@ -348,9 +348,13 @@ def administrate_consumption():
     return redirect(url_for('coffee.admin'))
 
 
-@bp.route("/app/")
+@bp.route("/app/", methods=['GET'])
 def mobile_app():
-    return render_template('app.html')
+    if request.args.get('jsdev'):
+        code_url = 'http://localhost:8080/dev-bundle/app.js'
+    else:
+        code_url = url_for('coffee.static', filename='build/app.js')
+    return render_template('app.html', code_url=code_url)
 
 
 @bp.route("/app/api/<function>/", methods=['GET', 'POST'])

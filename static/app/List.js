@@ -14,12 +14,12 @@ export default class List extends Component {
               "Kevin",
               "Moritz"],
     };
+    this.url = window.location.origin + window.location.pathname;
   }
 
   addConsumption(db_entry){
-    const url = window.location.href;
     $.post({
-      url: url + 'api/add_consumption/',
+      url: this.url + 'api/add_consumption/',
       data: JSON.stringify(db_entry),
       success: data => {
         if(data.users){
@@ -36,8 +36,7 @@ export default class List extends Component {
   }
 
   componentDidMount(){
-    const url = window.location.href;
-    $.getJSON(url + 'api/user_list/', (data) => {
+    $.getJSON(this.url + 'api/user_list/', (data) => {
       this.setState({
         users: data.users,
       });
