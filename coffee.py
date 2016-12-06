@@ -210,7 +210,7 @@ def global_data():
 
 
 def switch_to_user(username):
-    user = User.get(username=username)
+    user = User.get(User.username == username)
     logout_user()
     login_user(user, remember=False)
 
