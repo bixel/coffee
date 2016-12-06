@@ -13,12 +13,13 @@ export default class Row extends Component {
   }
 
   render(){
-    const buttons = this.props.products.map((product, i) => {
+    const buttons = Object.keys(this.props.products).map((name, i) => {
+      const product = this.props.products[name];
       const addButton = <AddButton product={product} key={product.name} name={this.props.name}
                          modifyDatabase={(cur_consumption) => this.modifyDatabase(cur_consumption)}/>
       return addButton;
       });
-    const mugs = this.props.consume ? [...Array(+this.props.consume)].map((_, i) => (<Icon key={i} product={this.props.products[0]}/>)) : '';
+    const mugs = this.props.consume ? this.props.consume.map((product, i) => (<Icon key={i} product={this.props.products[product]} />)) : '';
     return <div className="row" style={this.props.style}>
       <div className="col-xs-3" style={{marginTop: '6px'}}>{this.props.name}</div>
       <div className="col-xs-3" style={{marginTop: '5px'}}>{mugs}</div>

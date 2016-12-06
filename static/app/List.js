@@ -6,10 +6,16 @@ export default class List extends Component {
   constructor(props, context){
     super(props, context);
     this.state = {
-      products: [
-        {name: "Kaffee", icon: "https://image.flaticon.com/icons/svg/190/190883.svg"},
-        {name: "Milchkaffee", icon: "https://image.flaticon.com/icons/svg/190/190880.svg"},
-      ],
+      products: {
+        Kaffee: {
+          name: "Kaffee",
+          icon: "https://image.flaticon.com/icons/svg/190/190883.svg"
+        },
+        Milchkaffee: {
+          name: "Milchkaffee",
+          icon: "https://image.flaticon.com/icons/svg/190/190880.svg"
+        },
+      },
       users: ["Timon",
               "Kevin",
               "Moritz"],
@@ -18,6 +24,7 @@ export default class List extends Component {
   }
 
   addConsumption(db_entry){
+    console.log(db_entry);
     $.post({
       url: this.url + 'api/add_consumption/',
       data: JSON.stringify(db_entry),
@@ -62,7 +69,7 @@ export default class List extends Component {
         modifyDatabase={(db_entry) => this.addConsumption(db_entry)}
       />
     })
-    return <div className="container">
+    return <div className="container" style={{margin: "0px", width: "100%"}}>
       <div className="row"><div className="col-xs-12">
         <h1>Kaffeeliste</h1>
       </div></div>

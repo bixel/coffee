@@ -211,8 +211,10 @@ def global_data():
 
 def switch_to_user(username):
     user = User.get(User.username == username)
+    print(user)
     logout_user()
-    login_user(user, remember=False)
+    login_user(user, remember=True)
+    print(current_user.username, current_user.id)
 
 
 def ldap_login(username, password, remember=False):
@@ -319,10 +321,11 @@ def submit_payment():
     return redirect(url_for('coffee.admin'))
 
 
-@bp.route("/administrate/switch-to-user/<username>/")
+@bp.route("/admin/switch-to-user/<username>/")
 @login_required
 def administrate_switch_user(username):
     if is_admin():
+        print(username)
         switch_to_user(username)
         return redirect(url_for('coffee.personal'))
     else:
@@ -398,27 +401,33 @@ def mobile_app():
 @bp.route("/app/api/<function>/", methods=['GET', 'POST'])
 @guest_required
 def api(function):
+    prices = {p[0]: p[1] for p in app.config['COFFEE_PRICES']}
+    products = {p[1]: p[0] for p in app.config['COFFEE_PRICES']}
 
     def get_userlist():
         # always calculate user list
         today = datetime.now().replace(hour=0, minute=0)
-        return [{'name': u.name,
-                 'id': u.id,
-                 'username': u.username,
-                 'consume': (u.consumptions
-                     .select(fn.SUM(Consumption.units))
-                     .where(Consumption.date >= today)
-                     .scalar() or 0)
-                 } for u in User.select().where(User.active)]
+        users = []
+        for user in User.select().where(User.active):
+            user_dict = {
+                'name': user.name,
+                'username': user.username,
+                'id': user.id,
+                'consume': []
+            }
+            for consume in user.consumptions.where(Consumption.date >= today):
+                user_dict['consume'].extend(consume.units
+                                            * [prices[consume.price_per_unit]])
+            users.append(user_dict)
+        return users
 
     if function == 'user_list':
         return jsonify(users=get_userlist())
 
     if function == 'add_consumption':
         data = request.get_json()
-        prices = {price[1]: price[0] for price in app.config['COFFEE_PRICES']}
         created = Consumption(user=data['id'],
-                              price_per_unit=prices[data['consumption_type']],
+                              price_per_unit=products[data['consumption_type']],
                               units=data['cur_consumption'],
                               date=datetime.now()).save()
         return jsonify(status='success', users=get_userlist())
