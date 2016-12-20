@@ -61,7 +61,6 @@ login_manager.blueprint_login_views = {
 }
 
 mail = Mail()
-mail.init_app(app)
 
 admin = Admin(app, name='E5 MoCA DB ADMIN', template_mode='bootstrap3', url=app.config['BASEURL'] + '/admin/db')
 admin.add_view(ModelView(User))
@@ -351,6 +350,8 @@ def administrate_mail_credentials():
     else:
         app.config['MAIL_USERNAME'] = mform.mail_user.data
         app.config['MAIL_PASSWORD'] = mform.password.data
+        mail.init_app(app)
+        flash('Mail credentials updated')
     return redirect(url_for('coffee.admin'))
 
 
