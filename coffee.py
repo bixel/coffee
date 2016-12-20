@@ -98,6 +98,11 @@ class ExpenseForm(FlaskForm):
     date = DateField('Date', default=datetime.utcnow)
 
 
+class MailCredentialsForm(FlaskForm):
+    mail_user = TextField('MailUser')
+    password = PasswordField('Password')
+
+
 def guest_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -280,8 +285,11 @@ def admin():
         cform.units[-1].label = title
     eform = ExpenseForm()
     listofshame = get_listofshame()
+    mail_form = MailCredentialsForm()
     return render_template('admin.html', payment_form=pform,
                            consumption_form=cform, expense_form=eform,
+                           mail_form=mail_form,
+                           mail_username=app.config['MAIL_USERNAME'] or '',
                            listofshame=listofshame)
 
 
@@ -324,12 +332,26 @@ def submit_payment():
 @bp.route("/admin/switch-to-user/<username>/")
 @login_required
 def administrate_switch_user(username):
-    if is_admin():
-        print(username)
-        switch_to_user(username)
-        return redirect(url_for('coffee.personal'))
-    else:
+    if not is_admin():
         return abort(403)
+
+    switch_to_user(username)
+    if username == 'guest':
+        return redirect(url_for('coffee.mobile_app'))
+    else:
+        return redirect(url_for('coffee.personal'))
+
+
+@bp.route("/admin/mail-credentials/", methods=['POST'])
+@login_required
+def administrate_mail_credentials():
+    mform = MailCredentialsForm()
+    if not mform.validate_on_submit():
+        flash('Mail credentials invalid')
+    else:
+        app.config['MAIL_USERNAME'] = mform.mail_user.data
+        app.config['MAIL_PASSWORD'] = mform.password.data
+    return redirect(url_for('coffee.admin'))
 
 
 def warning_mail(user):
@@ -337,7 +359,7 @@ def warning_mail(user):
     msg.charset = 'utf-8'
     msg.add_recipient(user.email)
     msg.body = render_template('mail/lowbudget',
-                               balance=render_euros(user.balance))
+                               balance=euros(user.balance))
     if not app.config['DEBUG']:
         mail.send(msg)
     else:
@@ -416,8 +438,9 @@ def api(function):
                 'consume': []
             }
             for consume in user.consumptions.where(Consumption.date >= today):
-                user_dict['consume'].extend(consume.units
-                                            * [prices[consume.price_per_unit]])
+                user_dict['consume'].extend(
+                    consume.units * [prices[consume.price_per_unit]]
+                )
             users.append(user_dict)
         return users
 
@@ -430,7 +453,8 @@ def api(function):
                               price_per_unit=products[data['consumption_type']],
                               units=data['cur_consumption'],
                               date=datetime.now()).save()
-        return jsonify(status='success', users=get_userlist())
+        status = 'success' if created else 'failure'
+        return jsonify(status=status, users=get_userlist())
 
 
 @bp.route("/administrate/expenses", methods=['POST'])

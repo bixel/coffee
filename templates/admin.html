@@ -71,6 +71,21 @@
   </div>
 </div>
 
+<form action="{{ url_for('coffee.administrate_mail_credentials')}}" method="POST">
+  <h3>Email Credentials</h3>
+  <div class="form-group row">
+    {{ mail_form.hidden_tag() }}
+    <div class="col-xs-5">
+      {{ mail_form.mail_user(class="form-control", placeholder="Mail User")}}
+    </div>
+    <div class="col-xs-5">
+      {{ mail_form.password(class="form-control", placeholder="Password")}}
+    </div>
+    <div class="col-xs-2">
+      <button class="btn btn-primary btn-block" type="submit">Save</button>
+    </div>
+  </div>
+</form>
 
 <h2>List of Shame</h2>
 <table class="table table-striped">
