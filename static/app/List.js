@@ -52,8 +52,9 @@ export default class List extends Component {
     // store the guest user for later modifications
     let guestUser = undefined;
     let backgroundIt = 0;
+    let background = "#F8F8F8";
     let rows = this.state.users.map((user, i) => {
-      const background = backgroundIt++ % 2 ? "#F8F8F8" : "";
+      background = backgroundIt++ % 2 ? "#F8F8F8" : "";
 
       // dont show the guest user for now
       if(user.username === 'guest'){
@@ -72,8 +73,13 @@ export default class List extends Component {
         modifyDatabase={(db_entry) => this.addConsumption(db_entry)}
       />
     })
-    // @TODO Add the guest row
-    rows.push(<div key={rows.length}>Special stuff for Guests</div>)
+    if(guestUser){
+      rows.push(<Row products={this.state.products} name={guestUser.name}
+                  key={rows.length} userId={guestUser.id} consume={guestUser.consume}
+                  style={{background: background, padding: "4px"}}
+                  modifyDatabase={(db_entry) => this.addConsumption(db_entry)}
+        />)
+    }
     return <div className="container" style={{margin: "0px", width: "100%"}}>
       <div className="row"><div className="col-xs-12">
         <h1>Kaffeeliste</h1>

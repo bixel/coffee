@@ -25,7 +25,7 @@ export default class Row extends Component {
       ) :
       '';
     return <div className="row" style={this.props.style}>
-      <div className="col-xs-7" style={{marginTop: '6px'}}>
+      <div className="col-xs-7" style={{marginTop: '6px', fontSize: '24px'}}>
         {this.props.name}<br />
         {mugs}
       </div>

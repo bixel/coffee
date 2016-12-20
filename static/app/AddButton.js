@@ -8,18 +8,18 @@ const errorIconLink = {icon: "https://image.flaticon.com/icons/svg/148/148766.sv
 const styles = {
   addButtonNormal: {
     width: '100px',
-    height: '60px',
+    height: '80px',
   },
   addButtonCanUndo: {
     width: '60px',
-    height: '60px',
+    height: '80px',
   },
   undoButton: {
     width: '40px',
-    height: '60px',
+    height: '80px',
     padding: '8px 4px',
   },
-  badgeStyle: {
+  cancelBadgeStyle: {
     position: 'absolute',
     right: '-10px',
     top: '-10px',
@@ -29,10 +29,20 @@ const styles = {
     background: '#D75A4A',
     borderRadius: '10px',
   },
+  addBadgeStyle: {
+    position: 'absolute',
+    right: '-10px',
+    top: '-10px',
+    color: 'white',
+    width: '20px',
+    height: '20px',
+    background: '#53D838',
+    borderRadius: '10px',
+  },
 }
 
-const Badge = ({children}) => (
-  <div style={styles.badgeStyle}>
+const Badge = ({children, style}) => (
+  <div style={style}>
     {children}
   </div>
 );
@@ -100,9 +110,12 @@ export default class AddButton extends Component {
         className="btn btn-secondary"
         style={styles.undoButton}
         onClick={() => this.modifyConsumption(-1)}>
-          {undoButtonText}<Badge>{this.state.cur_undo_time}</Badge>
+          {undoButtonText}<Badge style={styles.cancelBadgeStyle}>{this.state.cur_undo_time}</Badge>
       </button>;
 
+    const addButtonBadge = (this.state.cur_consumption === 0 || this.state.cur_undo_time < 0) ?
+      null :
+      <Badge style={styles.addBadgeStyle}>{this.state.cur_consumption}</Badge>;
     const addButtonText = <Icon product={this.props.product} size={32} />;
     const addButton =
         <button
@@ -110,7 +123,7 @@ export default class AddButton extends Component {
           className="btn btn-primary"
           style={undoButton ? styles.addButtonCanUndo : styles.addButtonNormal}
           onClick={() => this.modifyConsumption(+1)}>
-            {addButtonText}
+            {addButtonText}{addButtonBadge}
         </button>;
 
     return (
