@@ -3,10 +3,10 @@
 
 vielen Dank für Ihre Einzahlung von
 
-      {{amount}}.
+      {{ amount | euros }}.
 
 Ihr jetziges Guthaben beträgt
 
-      {{balance}}.
+      {{ balance | euros }}.
 
 {% endblock %}

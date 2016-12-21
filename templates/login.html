@@ -2,17 +2,23 @@
 {% block body %}
 
 <div class="container">
-    <form role="form" method="POST" action="/login" class="form-signin">
-        {{ form.hidden_tag() }}
-        <h1>E5 Ministry of Coffee Affairs</h1>
-        <h2 class="form-signin-heading">LDAP Login</h2>
-            {{ form.username(class="form-control", placeholder="Username", autofocus=True) }}
-            {{ form.password(class="form-control", placeholder="Password") }}
-        <label class="checkbox">
-            {{ form.remember() }} Remember me
-        </label>
-        <button class="btn btn-lg btn-primary btn-block" type="submit">Login</button>
-    </form>
+  <h1>E5 Ministry of Coffee Affairs</h1>
+  <h2>LDAP Login</h2>
+  <form role="form" method="POST" action="{{ url_for('coffee.login') }}" class="form-signin">
+    {{ form.hidden_tag() }}
+    <div class="form-group">
+      {{ form.username(class="form-control", placeholder="Username", autofocus=True) }}
+    </div>
+    <div class="form-group">
+      {{ form.password(class="form-control", placeholder="Password") }}
+    </div>
+    <div class="form-check">
+      <label class="checkbox">
+        {{ form.remember() }} Remember me
+      </label>
+    </div>
+    <button class="btn btn-lg btn-primary" type="submit">Login</button>
+  </form>
 </div> <!-- /container -->
 
 {% endblock %}

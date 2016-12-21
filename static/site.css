@@ -1,21 +1,5 @@
-
-body {
-  padding-top: 40px;
-  padding-bottom: 40px;
-  background-color: #eee;
-}
-
-.container {
-    max-width: 680px;
-    width: auto;
-}
-
-.content {
-    margin-top: 40px;
-}
-
-.logout {
-    margin-top: 8px;
+#main {
+    margin-top: 1em;
 }
 
 .axis path,
@@ -35,4 +19,12 @@ body {
   fill: none;
   stroke: steelblue;
   stroke-width: 3.0px;
+}
+
+span.negative {
+    color: #FC381E;
+}
+
+span.positive {
+    color: #66FF43;
 }

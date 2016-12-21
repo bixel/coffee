@@ -1,428 +1,264 @@
-# coding: utf-8
+from functools import wraps
 
-from __future__ import division, unicode_literals
-
-from datetime import datetime, timedelta, date
-import ldap
+from datetime import datetime, timedelta
+from ldap3 import Server, Connection
 from wtforms import (StringField,
                      PasswordField,
                      BooleanField,
                      IntegerField,
+                     DecimalField,
                      HiddenField,
                      FieldList,
                      FormField,
                      SelectField,
+                     validators,
                      TextField)
 from wtforms import Form as NoCsrfForm
 from wtforms.fields.html5 import DateField
-
-import json
 
 from jinja2 import evalcontextfilter
 
 from flask import (Flask,
                    render_template,
                    redirect,
-                   jsonify,
                    g,
                    url_for,
                    request,
                    send_from_directory,
                    flash,
+                   jsonify,
+                   Blueprint,
                    abort)
-from flask.ext.login import (LoginManager,
-                             login_user,
-                             logout_user,
-                             current_user,
-                             login_required)
-from flask.ext.sqlalchemy import SQLAlchemy
-from flask.ext.wtf import Form
-from flask.ext.mail import Mail, Message
-from flask.ext.admin import Admin
-from flask.ext.admin.contrib.sqla import ModelView
+from flask_login import (LoginManager,
+                         login_user,
+                         logout_user,
+                         current_user,
+                         login_required)
+from flask_wtf import FlaskForm
+from flask_mail import Mail, Message
+from flask_admin import Admin
+from flask_admin.contrib.peewee import ModelView
+from peewee import fn
 
 import codecs
 
 from subprocess import Popen
 
-from sqlalchemy import func
-from sqlalchemy.sql.expression import false
-
 from math import exp
 
+from database import User, Transaction, Service, Consumption, db
+
 app = Flask(__name__)
-login_manager = LoginManager()
 app.config.from_object('config')
 app.config.from_envvar('COFFEE_SETTINGS', silent=True)
-admin = Admin(app, name='E5 MoCA DB ADMIN', template_mode='bootstrap3')
 
+bp = Blueprint('coffee', __name__, template_folder='templates', static_folder='static')
 
-class MyView(ModelView):
-    def __init__(self, model, session, **kwargs):
-        super(MyView, self).__init__(model, session, **kwargs)
-
-    def is_accessible(self):
-        valid = False
-        try:
-            valid = is_admin(g.user.username)
-        except:
-            pass
-        return valid
-
-db = SQLAlchemy(app)
-login_manager.init_app(app)
+login_manager = LoginManager(app)
+login_manager.login_view = 'coffee.login'
+login_manager.blueprint_login_views = {
+    'coffee': 'coffee.login',
+}
 
 mail = Mail()
-mail.init_app(app)
+
+admin = Admin(app, name='E5 MoCA DB ADMIN', template_mode='bootstrap3', url=app.config['BASEURL'] + '/admin/db')
+admin.add_view(ModelView(User))
+admin.add_view(ModelView(Transaction))
+admin.add_view(ModelView(Service))
 
 
-def is_admin(uname):
-    return uname in ['ibabuschking',
-                     'tschmelzer',
-                     'kheinicke']
-
-
-def init_db():
-    db.create_all()
-
-
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True)
-    name = db.Column(db.Unicode(80), unique=True)
-    email = db.Column(db.String(120), unique=True)
-    payments = db.relationship('Payment', backref='user', lazy='dynamic')
-    consumptions = db.relationship('Consumption', backref='user',
-                                   lazy='dynamic')
-    services = db.relationship('Service', backref='user', lazy='dynamic')
-    active = db.Column(db.Boolean)
-    vip = db.Column(db.Boolean, default=False)
-
-    def __init__(self, name=None, username=None, email=None):
-        if name:
-            self.name = name
-        if username:
-            self.username = username
-        if email:
-            self.email = email
-
-    def __repr__(self):
-        return '<User %r>' % self.username
-
-    def is_authenticated(self):
-        return True
-
-    def is_active(self):
-        return True
-
-    def is_anonymous(self):
-        return False
-
-    def get_id(self):
-        return unicode(self.id)
-
-    @property
-    def balance(self):
-        s = 0
-        for p in self.payments:
-            s += p.amount
-        for c in self.consumptions:
-            s += c.amountPaid
-        return s
-
-    @property
-    def total_consumption(self):
-        return self.consumptions(func.sum(Consumption.units)).scalar()
-
-    @property
-    def score(self):
-        services = 0
-        consumptions = 1
-        now = datetime.utcnow()
-        for s in self.services.filter(
-            Service.end_date > date(*app.config['INITIAL_SCORE_DATE'])
-        ):
-            timediff = now.date() - s.end_date
-            services += s.service_count * exp(-timediff.days / 365)
-        for c in self.consumptions.filter(
-            Consumption.date > datetime(*app.config['INITIAL_SCORE_DATE'])
-        ):
-            timediff = now - c.date
-            units = c.units or 0
-            consumptions += units * exp(-timediff.days / 365)
-        return services**3 / consumptions
-
-
-class Payment(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    amount = db.Column(db.Integer)
-    date = db.Column(db.DateTime)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    budgetChanges = db.relationship('BudgetChange', backref='Payment',
-                                    lazy='dynamic')
-
-    def __init__(self, amount=None, date=None):
-        if amount:
-            self.amount = amount
-        if not date:
-            self.date = datetime.utcnow()
-        else:
-            self.date = date
-
-    def __repr__(self):
-        return '<Payment %r>' % self.id
-
-
-class Consumption(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    units = db.Column(db.Integer)
-    amountPaid = db.Column(db.Integer)
-    date = db.Column(db.DateTime)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-
-    def __init__(self, amountPaid=None, units=None, date=None):
-        if units:
-            self.units = units
-        self.amountPaid = amountPaid or 0
-        if not date:
-            self.date = datetime.utcnow()
-        else:
-            self.date = date
-
-    def __repr__(self):
-        return '<Consumption %r>' % self.id
-
-
-class BudgetChange(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    amount = db.Column(db.Integer)
-    description = db.Column(db.String(200))
-    date = db.Column(db.DateTime)
-    payment_id = db.Column(db.Integer, db.ForeignKey('payment.id'))
-
-    def __init__(self, amount=None, description=None, date=None):
-        if amount:
-            self.amount = amount
-        if description:
-            self.description = description
-        if not date:
-            self.date = datetime.utcnow()
-        else:
-            self.date = date
-
-    def __repr__(self):
-        return '<BudgetChange %r>' % self.description
-
-
-class Service(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    start_date = db.Column(db.Date)
-    end_date = db.Column(db.Date)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    service_count = db.Column(db.Integer)
-
-    def __init__(self, start=None, end=None, user_id=None, service_count=None):
-        self.start_date = start or datetime.utcnow()
-        self.end_date = end or self.start_date + timedelta(days=5)
-        self.user_id = user_id
-        self.service_count = (service_count
-                              or (self.end_date - self.start_date).days + 1)
-
-    def __repr__(self):
-        return '<Service {} to {}>'.format(self.start_date, self.end_date)
-
-
-admin.add_view(MyView(User, db.session))
-admin.add_view(MyView(Payment, db.session))
-admin.add_view(MyView(Consumption, db.session))
-admin.add_view(MyView(BudgetChange, db.session))
-admin.add_view(MyView(Service, db.session))
-
-
-class LoginForm(Form):
+class LoginForm(FlaskForm):
     username = StringField('Username')
     password = PasswordField('Password')
     remember = BooleanField('remember', default=False)
 
 
-class PaymentForm(Form):
-    users = User.query.order_by(User.name).all()
-    ids = map(lambda x: x.id, users)
-    names = map(lambda x: '{}{}'.format(x.name, (' ✉️' if x.email else '')),
-                users)
-    uid = SelectField('Name', choices=zip(ids, names), coerce=int)
-    amount = IntegerField('Amount')
+class FlexibleDecimalField(DecimalField):
+    def process_formdata(self, valuelist):
+        if valuelist:
+            valuelist[0] = valuelist[0].replace(',', '.')
+        return super(FlexibleDecimalField, self).process_formdata(valuelist)
 
 
-class ConsumptionForm(Form):
-    users = User.query.order_by(User.name).all()
-    ids = map(lambda x: x.id, users)
-    names = map(lambda x: '{}{}'.format(x.name, (' ✉️' if x.email else '')),
-                users)
-    uid = SelectField('Name', choices=zip(ids, names), coerce=int)
-    units = FieldList(IntegerField('Units'))
+class PaymentForm(FlaskForm):
+    uid = SelectField('Name', choices=[], coerce=int)
+    amount = FlexibleDecimalField('Amount')
 
 
-class ConsumptionSingleForm(NoCsrfForm):
-    user = HiddenField('uid')
-    consumptions = FieldList(IntegerField('consumption', default=0),
-                             min_entries=len(app.config['COFFEE_PRICES']))
+class ConsumptionForm(FlaskForm):
+    uid = SelectField('Name', choices=[], coerce=int)
+    units = FieldList(IntegerField('Units', [validators.optional()]))
 
 
-class ConsumptionListForm(Form):
-    users = FieldList(FormField(ConsumptionSingleForm))
-
-
-class ExpenseForm(Form):
+class ExpenseForm(FlaskForm):
     description = TextField('Description')
-    amount = IntegerField('Amount')
+    amount = FlexibleDecimalField('Amount')
     date = DateField('Date', default=datetime.utcnow)
 
 
-@app.before_request
-def before_request():
-    g.user = current_user
+class MailCredentialsForm(FlaskForm):
+    mail_user = TextField('MailUser')
+    password = PasswordField('Password')
+
+
+def guest_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if current_user.username == 'guest' or app.config['DEBUG']:
+            return f(*args, **kwargs)
+        else:
+            abort(403)
+    return decorated_function
+
+
+@app.teardown_request
+def after_request(callback):
+    if not db.is_closed():
+        db.close()
 
 
 @login_manager.user_loader
-def load_user(id):
-    return User.query.get(int(id))
+def load_user(username):
+    if app.config['DEBUG'] and not app.config['USE_LDAP']:
+        return User.get_or_create(username=username, defaults={
+            'name': username,
+            'admin': True,
+        })[0]
+    return User.get(User.username == username)
 
 
-@app.route('/budget')
-def budget():
-    changes = db.session.query(BudgetChange).all()
-    s = 0
-    for c in changes:
-        s += c.amount
-    return str(s)
+@app.template_filter('euros')
+def euros(amount):
+    return '{:.2f}€'.format(amount / 100)
 
 
-@app.route('/', methods=['GET', 'POST'])
+def is_admin():
+    return current_user.admin or app.config['DEBUG']
+
+
+@bp.route('/', methods=['GET', 'POST'])
 @login_required
 def index():
     coffee_prices = app.config['COFFEE_PRICES']
-    changes = db.session.query(BudgetChange).all()
-    credits = db.session.query(User).all()
-
-    s = 0
-    credit = 0
-    for c in changes:
-        s += c.amount
-    for c in credits:
-        credit -= c.balance
+    target_budget = (
+        Consumption
+        .select(fn.SUM(Consumption.units * Consumption.price_per_unit))
+        .scalar() +
+        Transaction
+        .select(fn.SUM(Transaction.diff))
+        .where(Transaction.user == None)  # noqa
+        .scalar())
+    actual_budget = Transaction.select(fn.SUM(Transaction.diff)).scalar()
 
     return render_template(
-        "global.html", current_budget=render_euros(s),
-        actual_budget=render_euros(s + credit),
+        "global.html", current_budget=actual_budget,
+        target_budget=target_budget,
         coffee_prices=coffee_prices
     )
 
 
-@app.route('/personal')
+@bp.route('/personal/')
 @login_required
 def personal():
-    balance = g.user.balance
-    color = ""
+    user = User.get(User.username == current_user.username)
+    balance = user.balance
     if balance > 0:
-        color = "green"
-    elif balance < 0:
-        color = "red"
+        balance_type = 'positive'
+    else:
+        balance_type = 'negative'
+    return render_template('personal.html', user=user, balance=balance,
+                           balance_type=balance_type)
 
-    return render_template('user.html', current_balance=render_euros(balance),
-                           balance_color=color)
 
-
-@app.route('/personal_data.json')
+@bp.route('/personal_data.json')
 @login_required
 def personal_data():
     data = []
 
-    for p in g.user.payments:
-        data.append((p.date, p.amount))
-    for c in g.user.consumptions:
-        data.append((c.date, c.amountPaid))
+    user = User.get(User.id == current_user.id)
+    for t in user.transactions:
+        data.append((t.date.date(), t.diff))
+
+    # calculate consumption every friday
+    weekly = 0
+    current_date = datetime.today().date()
+    last_total = current_date
+    for c in user.consumptions.order_by(Consumption.date.desc()):
+        current_date = c.date.date()
+        weekly -= c.units * c.price_per_unit
+        if current_date < last_total:
+            data.append((last_total, weekly))
+            weekly = 0
+            # use the last friday to calculate total consumption for one week
+            last_total = current_date - timedelta(days=current_date.weekday() + 3)
 
     result = []
     for (d, a) in sorted(data, key=lambda x: x[0], reverse=True):
-        result.append({'date': str(d.date()), 'amount': a})
+        result.append({'date': str(d), 'amount': a})
 
-    return json.dumps(result)
+    return jsonify(data=result)
 
 
-@app.route('/global_data.json')
+@bp.route('/global_data.json')
 @login_required
 def global_data():
-    changes = db.session.query(BudgetChange).all()
+    changes = Transaction.select()
     li = []
     for c in changes:
-        li.append((str(c.date.date()), c.amount, c.description))
+        li.append((str(c.date.date()), c.diff, c.description))
     result = []
     for l in sorted(li, key=lambda x: x[0]):
         result.append({'date': l[0], 'amount': l[1], 'description': l[2]})
-    return json.dumps(result)
-
-
-@app.route('/api/<function>/')
-@login_required
-def api(function):
-    if function == 'consume':
-        cs = Consumption.query.filter(Consumption.date>datetime(2015, 10, 1)).all()
-    return jsonify({
-        'sum': sum([c.units for c in cs]),
-        'paid': sum([c.amountPaid for c in cs]) / -100.0,
-        'consume': [{
-            'units': c.units,
-            'date': str(c.date),
-        } for c in cs],
-    })
+    return jsonify(data=result)
 
 
 def switch_to_user(username):
-    user = db.session.query(User).filter_by(username=username).first()
+    user = User.get(User.username == username)
     logout_user()
-    login_user(user, remember=False)
+    login_user(user, remember=True, force=True)
 
 
 def ldap_login(username, password, remember=False):
+    if app.config['DEBUG'] and not app.config['USE_LDAP']:
+        user, created = User.get_or_create(username=username,
+                                           defaults=dict(name=username))
+        print(user, user.is_authenticated, created)
+        login_user(user, remember=remember)
+        return True
+
     data = ldap_authenticate(username, password)
     if data:
-        user = db.session.query(User).filter_by(username=username).first()
-        if not user:
-            user = User(username=username)
-            db.session.add(user)
-        user.name = unicode(data['cn'][0], 'utf-8')
+        user, created = User.get_or_create(username=username)
+        user.name = data[0]['cn']
         try:
-            user.email = data['mail'][0]
+            user.email = data[0]['mail']
         except KeyError:
             print('A user has no mail entry in LDAP!')
-        db.session.commit()
+        user.active = True
+        user.save()
         login_user(user, remember=remember)
         return True
     else:
         return False
 
 
-@app.route("/login", methods=['GET', 'POST'])
+@bp.route("/login", methods=['GET', 'POST'])
 def login():
-    if g.user.is_authenticated:
-        return redirect(url_for('index'))
     form = LoginForm()
     if form.validate_on_submit():
         username = form.username.data
         password = form.password.data
         remember = form.remember.data
-        # user = db.session.query(User).filter_by(username=username).first()
         if not ldap_login(username, password, remember=remember):
             return '<h1>Login failed</h1>'
-        return redirect(url_for('index'))
+        return redirect(url_for('coffee.index'))
     return render_template('login.html', form=form)
 
 
 def get_listofshame():
-    users = db.session.query(User).all()
     entries = []
-    for u in users:
+    for u in User.select():
         entries.append({'name': u.name,
                         'balance': u.balance,
                         'username': u.username,
@@ -432,100 +268,90 @@ def get_listofshame():
     return li
 
 
-@app.route("/administrate/interactive")
+@bp.route('/admin/')
 @login_required
 def admin():
-    if is_admin(g.user.username):
-        pform = PaymentForm()
-        cform = ConsumptionForm()
-        for price, title in app.config['COFFEE_PRICES']:
-            cform.units.append_entry()
-            cform.units[-1].label = title
-        eform = ExpenseForm()
-        listofshame = get_listofshame()
-        return render_template('admin.html', payment_form=pform,
-                               consumption_form=cform, expense_form=eform,
-                               list_of_shame=listofshame)
-    else:
+    if not is_admin():
         return abort(403)
 
+    pform = PaymentForm()
+    pform.uid.choices = User.get_uids()
+    cform = ConsumptionForm()
+    cform.uid.choices = User.get_uids()
+    for price, title in app.config['COFFEE_PRICES']:
+        cform.units.append_entry()
+        cform.units[-1].label = title
+    eform = ExpenseForm()
+    listofshame = get_listofshame()
+    mail_form = MailCredentialsForm()
+    return render_template('admin.html', payment_form=pform,
+                           consumption_form=cform, expense_form=eform,
+                           mail_form=mail_form,
+                           mail_username=app.config['MAIL_USERNAME'] or '',
+                           listofshame=listofshame)
 
-@app.route("/administrate/payment", methods=['POST'])
+
+@bp.route("/admin/payment/", methods=['POST'])
 @login_required
-def administrate_payment():
-    if is_admin(g.user.username):
-        pform = PaymentForm()
-        if pform.validate_on_submit():
-            uid = pform.uid.data
-            amount = pform.amount.data
-            user = db.session.query(User).filter_by(id=uid).first()
-            payment = Payment(amount=amount)
-            user.payments.append(payment)
-            bc = BudgetChange(amount=amount,
-                              description='Payment from ' + user.name)
-            payment.budgetChanges.append(bc)
-            db.session.add(bc)
-            db.session.commit()
-            if user.email:
-                msg = Message(u"[Kaffeeministerium] Einzahlung von %s"
-                              % render_euros(amount))
-                msg.charset = 'utf-8'
-                msg.add_recipient(user.email)
-                msg.body = render_template('mail/payment',
-                                           amount=render_euros(amount),
-                                           balance=render_euros(user.balance))
-                if not app.config['DEBUG']:
-                    mail.send(msg)
-                else:
-                    print(u'Sending mail \n{}'.format(unicode(msg.as_string(),
-                                                              'utf-8')))
-
-            return redirect(url_for('admin'))
-    else:
+def submit_payment():
+    if not is_admin():
         return abort(403)
 
+    pform = PaymentForm()
+    pform.uid.choices = User.get_uids()
+    if not pform.validate_on_submit():
+        flash('Payment invalid.')
+        return redirect(url_for('coffee.admin'))
 
-@app.route("/administrate/consumption", methods=['POST'])
-@login_required
-def administrate_consumption():
-    if is_admin(g.user.username):
-        cform = ConsumptionForm()
-        if cform.validate_on_submit():
-            uid = cform.uid.data
-            user = db.session.query(User).filter_by(id=uid).first()
-            user.active = True
-            for u, c in zip(cform.units.data, app.config['COFFEE_PRICES']):
-                if(u > 0):
-                    user.consumptions.append(Consumption(units=u,
-                                             amountPaid=-u * c[0]))
-            db.session.commit()
-            if user.balance < app.config['BUDGET_WARN_BELOW'] and user.email:
-                msg = Message(u"[Kaffeeministerium] Geringes Guthaben!")
-                msg.charset = 'utf-8'
-                msg.add_recipient(user.email)
-                msg.body = render_template('mail/lowbudget',
-                                           balance=render_euros(user.balance))
-                if not app.config['DEBUG']:
-                    mail.send(msg)
-                else:
-                    print(u'Sending mail \n{}'.format(unicode(msg.as_string(),
-                                                              'utf-8')))
-
-            return redirect(url_for('admin'))
+    uid = pform.uid.data
+    amount = float(pform.amount.data) * 100
+    user = User.get(User.id == uid)
+    transaction = Transaction(user=user, diff=amount,
+                              description='{} payment from {}'
+                              .format(euros(amount), user.name))
+    transaction.save()
+    if user.email:
+        msg = Message('[Kaffeeministerium] Einzahlung von {}'
+                      .format(euros(amount)))
+        msg.charset = 'utf-8'
+        msg.add_recipient(user.email)
+        msg.body = render_template('mail/payment',
+                                   amount=amount,
+                                   balance=user.balance)
+        flash('Mail sent to user {}'.format(user.name))
+        if not app.config['DEBUG']:
+            mail.send(msg)
         else:
-            return 'Form not valid'
-    else:
-        return abort(403)
+            print(u'Sending mail \n{}'.format(msg.as_string()))
+
+    return redirect(url_for('coffee.admin'))
 
 
-@app.route("/administrate/switch-to-user/<username>/")
+@bp.route("/admin/switch-to-user/<username>/")
 @login_required
 def administrate_switch_user(username):
-    if is_admin(g.user.username):
-        switch_to_user(username)
-        return redirect(url_for('personal'))
-    else:
+    if not is_admin():
         return abort(403)
+
+    switch_to_user(username)
+    if username == 'guest':
+        return redirect(url_for('coffee.mobile_app'))
+    else:
+        return redirect(url_for('coffee.personal'))
+
+
+@bp.route("/admin/mail-credentials/", methods=['POST'])
+@login_required
+def administrate_mail_credentials():
+    mform = MailCredentialsForm()
+    if not mform.validate_on_submit():
+        flash('Mail credentials invalid')
+    else:
+        app.config['MAIL_USERNAME'] = mform.mail_user.data
+        app.config['MAIL_PASSWORD'] = mform.password.data
+        mail.init_app(app)
+        flash('Mail credentials updated')
+    return redirect(url_for('coffee.admin'))
 
 
 def warning_mail(user):
@@ -533,134 +359,184 @@ def warning_mail(user):
     msg.charset = 'utf-8'
     msg.add_recipient(user.email)
     msg.body = render_template('mail/lowbudget',
-                               balance=render_euros(user.balance))
+                               balance=euros(user.balance))
     if not app.config['DEBUG']:
         mail.send(msg)
     else:
         print(u'Sending mail \n{}'.format(unicode(msg.as_string(), 'utf-8')))
 
 
-@app.route('/administrate/consumption/list', methods=['POST', 'GET'])
+@bp.route("/administrate/consumption", methods=['POST'])
 @login_required
-def administrate_consumption_list():
-    if is_admin(g.user.username):
-        form = ConsumptionListForm()
-        if request.method == 'POST':
-            if form.validate_on_submit():
-                for f in form.users.entries:
-                    notify = False
-                    active = False
-                    user = User.query.get(f.user.data)
-                    for units, price in zip(f.consumptions.data,
-                                            app.config['COFFEE_PRICES']):
-                        if units > 0:
-                            user.consumptions.append(Consumption(
-                                units=units,
-                                amountPaid=-units * price[0]
-                            ))
-                            print('Consume added for {}'.format(user.name))
-                            notify = True
-                            active = True
-                    db.session.commit()
-                    if (notify and user.email and user.balance
-                            < app.config['BUDGET_WARN_BELOW']):
-                        warning_mail(user)
-                    user.active = active
-            else:
-                print(form.errors)
-            return redirect(url_for('administrate_consumption_list'))
-        else:
-            users = User.query.order_by(User.active.desc(), User.name).all()
-            for u in users:
-                form.users.append_entry()
-                form.users.entries[-1].user.data = u.id
-                form.users.entries[-1].consumptions.label = u.name
-            return render_template('consumption_list.html', form=form)
-    else:
+def administrate_consumption():
+    if not is_admin():
         return abort(403)
 
+    cform = ConsumptionForm()
+    cform.uid.choices = User.get_uids()
+    if not cform.validate_on_submit():
+        return 'Form not valid'
 
-@app.route("/administrate/expenses", methods=['POST'])
+    uid = cform.uid.data
+    user = User.get(User.id == uid)
+    user.active = True
+    user.save()
+
+    # Check if there was any useful input
+    if True not in [x and x > 0 for x in cform.units.data]:
+        flash('No updates given.')
+        return redirect(url_for('coffee.admin'))
+
+    for u, c in zip(cform.units.data, app.config['COFFEE_PRICES']):
+        if(u):
+            consumption = Consumption(units=u, price_per_unit=c[0], user=user)
+            consumption.save()
+    balance = user.balance
+    if balance < app.config['BUDGET_WARN_BELOW']:
+        if user.email:
+            msg = Message(u"[Kaffeeministerium] Geringes Guthaben!")
+            msg.charset = 'utf-8'
+            msg.add_recipient(user.email)
+            msg.body = render_template('mail/lowbudget',
+                                       balance=euros(balance))
+            if not app.config['DEBUG']:
+                mail.send(msg)
+            else:
+                print(u'Sending mail \n{}'.format(msg.as_string()))
+            flash('Warning mail sent. Balance is {}'.format(euros(balance)))
+        else:
+            flash('Balance is {}. User could not be notified.'.format(euros(balance)))
+
+    return redirect(url_for('coffee.admin'))
+
+
+@bp.route("/app/", methods=['GET'])
+@guest_required
+def mobile_app():
+    if request.args.get('jsdev'):
+        code_url = 'http://localhost:8080/dev-bundle/app.js'
+    else:
+        code_url = url_for('coffee.static', filename='build/app.js')
+    return render_template('app.html', code_url=code_url)
+
+
+@bp.route("/app/api/<function>/", methods=['GET', 'POST'])
+@guest_required
+def api(function):
+    prices = {p[0]: p[1] for p in app.config['COFFEE_PRICES']}
+    products = {p[1]: p[0] for p in app.config['COFFEE_PRICES']}
+
+    def get_userlist():
+        # always calculate user list
+        today = datetime.now().replace(hour=0, minute=0)
+        users = []
+        for user in User.select().where(User.active).order_by(User.vip.desc(), User.name):
+            user_dict = {
+                'name': user.name,
+                'username': user.username,
+                'id': user.id,
+                'consume': []
+            }
+            for consume in user.consumptions.where(Consumption.date >= today):
+                user_dict['consume'].extend(
+                    consume.units * [prices[consume.price_per_unit]]
+                )
+            users.append(user_dict)
+        return users
+
+    if function == 'user_list':
+        return jsonify(users=get_userlist())
+
+    if function == 'add_consumption':
+        data = request.get_json()
+        created = Consumption(user=data['id'],
+                              price_per_unit=products[data['consumption_type']],
+                              units=data['cur_consumption'],
+                              date=datetime.now()).save()
+        status = 'success' if created else 'failure'
+        return jsonify(status=status, users=get_userlist())
+
+
+@bp.route("/administrate/expenses", methods=['POST'])
 @login_required
 def administrate_expenses():
-    if is_admin(g.user.username):
-        eform = ExpenseForm()
-        if eform.validate_on_submit():
-            description = eform.description.data
-            amount = eform.amount.data
-            date = (eform.date.data
-                    if eform.date.data != ''
-                    else datetime.utcnow())
-            bc = BudgetChange(amount=amount,
-                              description=description,
-                              date=date)
-            db.session.add(bc)
-            db.session.commit()
-        else:
-            for field, errors in eform.errors.items():
-                for error in errors:
-                    flash(u'Error in the %s field - %s'
-                          % (getattr(eform, field).label.text, error))
-
-        return redirect(url_for('admin'))
-    else:
+    if not is_admin():
         return abort(403)
 
+    eform = ExpenseForm()
+    if not eform.validate_on_submit():
+        for field, errors in eform.errors.items():
+            for error in errors:
+                flash(u'Error in the %s field - %s'
+                      % (getattr(eform, field).label.text, error))
+        return redirect(url_for('coffee.admin'))
 
-@app.route('/administrate/service.pdf')
-@login_required
-def administrate_service_list():
-    services = Service.query.order_by(Service.end_date.desc())[0:5]
-    services = list(reversed(services))
-    string = render_template('service.tex', services=services)
-    with codecs.open('build/service.tex', 'w', 'utf-8') as f:
-        f.write(string)
-    p = Popen(
-        '/Library/Tex/texbin/lualatex --interaction=batchmode'
-        ' --output-directory=build build/service.tex',
-        shell=True
-    )
-    p.wait()
-    return send_from_directory('build', 'service.pdf')
-
-
-@app.route('/administrate/service/update/')
-@login_required
-def administrate_service_update():
-    services = []
-    users = User.query.filter(User.active, User.vip == false()).all()
-    users = sorted(users, key=lambda x: x.score)
-    last_service = Service.query.order_by(Service.end_date.desc()).first()
-    last_date = last_service.end_date
-    for u in users[0:5]:
-        s = Service(
-            start=last_date + timedelta(3),
-            end=last_date + timedelta(7),
-        )
-        services.append(s)
-        u.services.append(s)
-        last_date += timedelta(7)
-    db.session.commit()
-    return 'Services Updated: {}'.format(
-        ['{}'.format(st.user.name) for st in services]
-    )
+    description = eform.description.data
+    amount = eform.amount.data
+    date = (eform.date.data
+            if eform.date.data != ''
+            else datetime.utcnow())
+    t = Transaction(diff=100 * amount, date=date, description=description)
+    t.save()
+    flash('Transaction stored.')
+    return redirect(url_for('coffee.admin'))
 
 
-@app.route('/administrate/list.pdf')
+# @app.route('/admin/service.pdf')
+# @login_required
+# def administrate_service_list():
+#     services = Service.select().order_by(Service.date.desc())[0:5]
+#     services = list(reversed(services))
+#     string = render_template('service.tex', services=services)
+#     with codecs.open('build/service.tex', 'w', 'utf-8') as f:
+#         f.write(string)
+#     p = Popen(
+#         '/Library/Tex/texbin/lualatex --interaction=batchmode'
+#         ' --output-directory=build build/service.tex',
+#         shell=True
+#     )
+#     p.wait()
+#     return send_from_directory('build', 'service.pdf')
+#
+#
+# @app.route('/administrate/service/update/')
+# @login_required
+# def administrate_service_update():
+#     services = []
+#     users = User.query.filter(User.active, User.vip == false()).all()
+#     users = sorted(users, key=lambda x: x.score)
+#     last_service = Service.query.order_by(Service.date.desc()).first()
+#     last_date = last_service.date
+#     for u in users[0:5]:
+#         s = Service(
+#             start=last_date + timedelta(3),
+#             end=last_date + timedelta(7),
+#         )
+#         services.append(s)
+#         u.services.append(s)
+#         last_date += timedelta(7)
+#     db.session.commit()
+#     return 'Services Updated: {}'.format(
+#         ['{}'.format(st.user.name) for st in services]
+#     )
+
+
+@bp.route('/admin/list.pdf')
 @login_required
 def administrate_list():
-    users = User.query.filter(User.active).order_by(User.name).all()
-    for u in users:
-        consumptions = sorted(u.consumptions.all(), key=lambda x: x.date)
-        if (consumptions and (
+    users = []
+    for u in User.select().where(User.active | User.vip).order_by(User.name):
+        consumptions = sorted(u.consumptions, key=lambda x: x.date)
+        if not u.vip and (consumptions and (
                 datetime.utcnow() - consumptions[-1].date) > timedelta(90)):
             u.active = False
-            users.remove(u)
-    db.session.commit()
+            u.save()
+        else:
+            users.append(u)
     string = render_template('list.tex',
                              current_date=datetime.utcnow(),
                              users=users,
-                             vip=app.config['COFFEE_VIPS'])
+                             vip=list(User.select(User.name).where(User.vip)))
     with codecs.open('build/list.tex', 'w', 'utf-8') as f:
         f.write(string)
     p = Popen(
@@ -672,68 +548,37 @@ def administrate_list():
     return send_from_directory('build', 'list.pdf')
 
 
-@app.route("/logout")
+@bp.route("/logout")
 def logout():
     logout_user()
-    return redirect(url_for('login'))
-
-
-def render_euros(num):
-    minus = ""
-    if num < 0:
-        num *= -1
-        minus = "-"
-
-    euros = num // 100
-    cents = num % 100
-    return (u'{}{}.{:02d} €'.format(minus, euros, cents))
-
-
-@app.template_filter()
-@evalcontextfilter
-def euros(eval_ctx, value):
-    return render_euros(value)
-
-
-def ldap_get(username):
-    ldap_server = app.config['LDAP_HOST']
-    base_dn = app.config['LDAP_SEARCH_BASE']
-    connect = ldap.open(ldap_server, port=app.config['LDAP_PORT'])
-    try:
-        connect.bind_s('', '')
-        result = connect.search_s(base_dn, ldap.SCOPE_SUBTREE,
-                                  'uid={}'.format(username))
-        connect.unbind_s()
-        if result:
-            data = result[0][1]
-            return data
-        else:
-            return None
-    except ldap.LDAPError, e:
-        print('LDAP error: {}'.format(e))
-        connect.unbind_s()
-        return None
+    return redirect(url_for('coffee.login'))
 
 
 def ldap_authenticate(username, password):
-    print('Trying to authenticate {}'.format(username))
-    ldap_server = app.config['LDAP_HOST']
-    base_dn = app.config['LDAP_SEARCH_BASE']
-    connect = ldap.open(ldap_server, port=app.config['LDAP_PORT'])
-    search_filter = "uid=" + username
+    # the guest user is special
+    assert(username != 'guest')
     try:
-        connect.bind_s('uid=' + username + ',' + base_dn, password)
-        result = connect.search_s(base_dn, ldap.SCOPE_SUBTREE, search_filter)
-        connect.unbind_s()
-        data = result[0][1]
-        return data
-    except ldap.LDAPError, e:
-        print('LDAP error: {}'.format(e))
-        connect.unbind_s()
-        return None
+        ldap_server = Server(app.config['LDAP_HOST'], port=app.config['LDAP_PORT'])
+        base_dn = app.config['LDAP_SEARCH_BASE']
+        ldap_conn = Connection(ldap_server,
+                               "uid={},cn=users,{}".format(username, base_dn),
+                               password)
+        if ldap_conn.search(base_dn,
+                            '(&(objectclass=person)(uid={}))'.format(username),
+                            attributes=['mail', 'cn']):
+            return ldap_conn.entries
+    except:
+        pass
+
+    return None
 
 
 login_manager.login_view = 'login'
 
+app.register_blueprint(bp, url_prefix=app.config['BASEURL'])
+
 if __name__ == '__main__':
-    app.run(host='localhost', port=5001)
+    if db.is_closed():
+        db.connect()
+        db.create_tables([User, Transaction, Consumption, Service], safe=True)
+    app.run(host=app.config['SERVER'], port=app.config['PORT'])

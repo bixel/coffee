@@ -3,15 +3,18 @@
   <head>
     <title>Ministry of Coffee Affairs</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="/static/bootstrap.min.css" rel="stylesheet" media="screen">
-    <link href="/static/site.css" rel="stylesheet" />
-    <script src="/static/d3.v3.min.js" charset="utf-8"></script>   
-    <script src="/static/site.js" charset="utf-8"></script>   
+    <link href="{{ url_for('coffee.static', filename='bootstrap.min.css') }}" rel="stylesheet" media="screen">
+    <link href="{{ url_for('coffee.static', filename='site.css') }}" rel="stylesheet" />
+    <script src="{{ url_for('coffee.static', filename='d3.min.js') }}" charset="utf-8"></script>
+    <script src="{{ url_for('coffee.static', filename='site.js') }}" charset="utf-8"></script>
   </head>
 
   <body>
     {% block body %}{% endblock %}
-    <script src="/static/jquery.js"></script>
-    <script src="/static/bootstrap.min.js"></script>
   </body>
+  <script src="{{ url_for('coffee.static', filename='jquery.js') }}"></script>
+  <script src="{{ url_for('coffee.static', filename='tether.min.js') }}"></script>
+  <script src="{{ url_for('coffee.static', filename='bootstrap.min.js') }}"></script>
+  {% block scripts %}
+  {% endblock %}
 </html>

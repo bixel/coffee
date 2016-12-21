@@ -1,8 +1,6 @@
-
-
 function draw_table(file, columns, id) {
-    d3.json(file, function(data) {
-
+    d3.json(file, function(error, raw_json) {
+        var data = raw_json.data;
         var table = d3.select(id).append("table").attr("class", "table table-striped"),
             thead = table.append("thead"),
             tbody = table.append("tbody");
@@ -85,8 +83,9 @@ function draw_graph(file, id, w, h) {
       .append("g")
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-    d3.json(file, function(error, data) {
+    d3.json(file, function(error, full_json) {
       sum = 0;
+      data = full_json.data;
       data.forEach(function(d) {
         d.date = parseDate(d.date);
         sum += 0.01 * d.amount;

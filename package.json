@@ -1,0 +1,24 @@
+{
+  "name": "MOCA",
+  "version": "0.0.1",
+  "main": "static/app.js",
+  "description": "Ministry of Coffee Affairs Web App",
+  "repository": "bixel/python-coffee",
+  "license": "MIT",
+  "devDependencies": {
+    "babel-core": "^6.7.7",
+    "babel-loader": "^6.2.4",
+    "babel-preset-es2015": "^6.0.11",
+    "babel-preset-react": "^6.5.0",
+    "classnames": "^2.2.5",
+    "react": "^15.4.0",
+    "react-dom": "^15.4.0",
+    "webpack": "^1.13.0",
+    "webpack-dev-server": "^1.16.2"
+  },
+  "scripts": {
+    "start": "webpack-dev-server --hot --inline --progress",
+    "build": "webpack",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}

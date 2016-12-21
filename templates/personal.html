@@ -1,0 +1,23 @@
+{% extends "site.html" %}
+{% block content %}
+
+<h2>Coffee History <small>{{ user.name }}</small></h2>
+<div class="row">
+  <div class="col-sm-8">
+    <h2>Current balance: <span class="{{ balance_type }}">{{ balance | euros }}</span></h2>
+    <div id="personal_graph"></div>
+    <script>
+      draw_graph('{{ url_for('coffee.personal_data') }}', '#personal_graph', 400, 400)
+    </script>
+  </div>
+  <div class="col-sm-4">
+    <h2>Transactions</h2>
+    <div id="personal_table"></div>
+    <script>
+      draw_table('{{ url_for('coffee.personal_data') }}', ['date', 'amount'], '#personal_table')
+    </script>
+  </div>
+</div>
+
+
+{% endblock %}

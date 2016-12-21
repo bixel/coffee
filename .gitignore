@@ -3,3 +3,5 @@ coffee.db
 *.db
 *.pyc
 build/
+node_modules/
+*.jpg

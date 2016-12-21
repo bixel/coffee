@@ -1,19 +1,21 @@
 {% extends "site.html" %}
 
 {% block admin_navbar %}
-<li><a href="#"
-       class="dropdown-toggle"
+<li class="nav-item dropdown">
+  <a href="#"
+       class="dropdown-toggle nav-link"
        data-toggle="dropdown"
        role="button"
        aria-haspopup="true"
        aria-expanded="false"><span class="caret"></span>
   </a>
   <ul class="dropdown-menu">
-    <li><a href="/admin">Adminpanel</a>
-    <li><a href="{{ url_for("administrate_consumption_list") }}">Consumelist</a>
-    <li><a href="{{ url_for("administrate_service_list") }}" target="_blank">service.pdf</a>
-    <li><a href="{{ url_for("administrate_list") }}" target="_blank">list.pdf</a>
+    <li class="dropdown-item"><a href="{{ url_for('admin.index') }}">Adminpanel</a>
+    {# <li><a href="{{ url_for("administrate_consumption_list") }}">Consumelist</a> #}
+    {# <li><a href="{{ url_for("administrate_service_list") }}" target="_blank">service.pdf</a> #}
+    {# <li><a href="{{ url_for("administrate_list") }}" target="_blank">list.pdf</a> #}
   </ul>
+</li>
 {% endblock %}
 
 {% block content %}
@@ -24,7 +26,7 @@
 </div>
 <div class="row">
   <div class="col-md-4">
-    <form method="POST" action="/administrate/payment" class="form-signin">
+    <form method="POST" action="{{ url_for('coffee.submit_payment')}}" class="form-signin">
         {{ payment_form.hidden_tag() }}
         <h3 class="form-signin-heading">Payment</h3>
         <div class="form-group">
@@ -37,7 +39,7 @@
     </form>
   </div>
   <div class="col-md-4">
-    <form method="POST" action="/administrate/consumption" class="form-signin">
+    <form method="POST" action="{{ url_for('coffee.administrate_consumption') }}" class="form-signin">
         {{ consumption_form.hidden_tag() }}
         <h3 class="form-signin-heading">Consumption</h3>
         <div class="form-group">
@@ -52,7 +54,7 @@
     </form>
   </div>
   <div class="col-md-4">
-    <form method="POST" action="/administrate/expenses" class="form-signin">
+    <form method="POST" action="{{ url_for('coffee.administrate_expenses') }}" class="form-signin">
         {{ expense_form.hidden_tag() }}
         <h3 class="form-signin-heading">Expense</h3>
         <div class="form-group">
@@ -69,6 +71,21 @@
   </div>
 </div>
 
+<form action="{{ url_for('coffee.administrate_mail_credentials')}}" method="POST">
+  <h3>Email Credentials</h3>
+  <div class="form-group row">
+    {{ mail_form.hidden_tag() }}
+    <div class="col-xs-5">
+      {{ mail_form.mail_user(class="form-control", placeholder="Mail User")}}
+    </div>
+    <div class="col-xs-5">
+      {{ mail_form.password(class="form-control", placeholder="Password")}}
+    </div>
+    <div class="col-xs-2">
+      <button class="btn btn-primary btn-block" type="submit">Save</button>
+    </div>
+  </div>
+</form>
 
 <h2>List of Shame</h2>
 <table class="table table-striped">
@@ -80,11 +97,11 @@
     </tr>
   </thead>
   <tbody>
-    {% for entry in list_of_shame %}
+    {% for entry in listofshame %}
     <tr>
       <td>{{ '%2.2f' % (entry.balance / 100) }}</td>
       <td>
-        <a href="{{ url_for('administrate_switch_user', username=entry.username) }}">
+        <a href="{{ url_for('coffee.administrate_switch_user', username=entry.username) }}">
           {{ entry.name }}
         </a>
       </td>
