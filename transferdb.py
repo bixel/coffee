@@ -188,7 +188,7 @@ if __name__ == '__main__':
     users = s.query(User).all()
     for user in users:
         new = NewUser(username=user.username, name=user.name, email=user.email,
-                      vip=user.vip, active=user.active)
+                      vip=user.vip, active=user.active or False)
         stored = new.save()
 
         past_consume = 0
