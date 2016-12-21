@@ -215,10 +215,8 @@ def global_data():
 
 def switch_to_user(username):
     user = User.get(User.username == username)
-    print(user)
     logout_user()
-    login_user(user, remember=True)
-    print(current_user.username, current_user.id)
+    login_user(user, remember=True, force=True)
 
 
 def ldap_login(username, password, remember=False):
