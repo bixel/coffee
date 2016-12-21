@@ -89,7 +89,7 @@ class User(BaseModel):
                 ._consume) or 0
 
     def get_uids():
-        users = User.select().order_by(User.username)
+        users = User.select().order_by(User.name)
         return map(lambda u: (u.id, u.name), users)
 
     def delete_instance(self, *args, **kwargs):
