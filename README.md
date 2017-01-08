@@ -1,4 +1,9 @@
-# E5 Ministry of Coffee Affairs Cloud Stack
+# Coffee user management
+
+This project is based on the initial work of @ibab's python-coffee.
+You can manage the budget and consume of a group of coffee users.
+Users can update their consumption on a simple web-interface, which fits nicely
+into some low-budget tablet.
 
 Development:
 
