@@ -105,7 +105,7 @@ class MailCredentialsForm(FlaskForm):
 def guest_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if current_user.username == 'guest' or app.config['DEBUG']:
+        if app.config['DEBUG'] or current_user.username == 'guest':
             return f(*args, **kwargs)
         else:
             abort(403)
@@ -141,15 +141,17 @@ def is_admin():
 @login_required
 def index():
     coffee_prices = app.config['COFFEE_PRICES']
-    target_budget = (
-        Consumption
-        .select(fn.SUM(Consumption.units * Consumption.price_per_unit))
-        .scalar() +
-        Transaction
-        .select(fn.SUM(Transaction.diff))
-        .where(Transaction.user == None)  # noqa
-        .scalar())
-    actual_budget = Transaction.select(fn.SUM(Transaction.diff)).scalar()
+    target_budget = ((
+            Consumption
+            .select(fn.SUM(Consumption.units * Consumption.price_per_unit))
+            .scalar() or 0
+        ) + (
+            Transaction
+            .select(fn.SUM(Transaction.diff))
+            .where(Transaction.user == None)  # noqa
+            .scalar() or 0
+        ))
+    actual_budget = Transaction.select(fn.SUM(Transaction.diff)).scalar() or 0
 
     return render_template(
         "global.html", current_budget=actual_budget,
@@ -222,8 +224,7 @@ def switch_to_user(username):
 def ldap_login(username, password, remember=False):
     if app.config['DEBUG'] and not app.config['USE_LDAP']:
         user, created = User.get_or_create(username=username,
-                                           defaults=dict(name=username))
-        print(user, user.is_authenticated, created)
+                                           defaults={'name': username})
         login_user(user, remember=remember)
         return True
 
