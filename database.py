@@ -42,7 +42,7 @@ class User(BaseModel):
         return True
 
     def get_id(self):
-        return self.username
+        return self.id
 
     @property
     def is_anonymous(self):
