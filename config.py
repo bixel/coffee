@@ -5,8 +5,7 @@ DEBUG = os.environ.get("COFFEE_DEBUG", 'False') == 'True'
 USE_LDAP = os.environ.get("COFFEE_LDAP", 'True') == 'True'
 SECRET_KEY = os.environ.get('COFFEE_SECRET_KEY', 'super_secret')
 if SECRET_KEY == 'super_secret' and not DEBUG:
-    print('Please set a secret key in production.')
-    sys.exit(1)
+    print('Warning: Please set a secret key in production.')
 DATABASE_FILE = os.environ.get('COFFEE_DB', 'coffee.db')
 COFFEE_PRICES = [
     [30, u'Kaffee'],

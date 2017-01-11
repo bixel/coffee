@@ -5,3 +5,4 @@ coffee.db
 build/
 node_modules/
 *.jpg
+*.cfg
