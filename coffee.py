@@ -60,7 +60,7 @@ login_manager.blueprint_login_views = {
     'coffee': 'coffee.login',
 }
 
-mail = Mail()
+mail = Mail(app)
 
 admin = Admin(app, name='E5 MoCA DB ADMIN', template_mode='bootstrap3', url=app.config['BASEURL'] + '/admin/db')
 
