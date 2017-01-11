@@ -63,9 +63,11 @@ login_manager.blueprint_login_views = {
 mail = Mail()
 
 admin = Admin(app, name='E5 MoCA DB ADMIN', template_mode='bootstrap3', url=app.config['BASEURL'] + '/admin/db')
+
 admin.add_view(ModelView(User))
 admin.add_view(ModelView(Transaction))
 admin.add_view(ModelView(Service))
+admin.add_view(ModelView(Consumption))
 
 
 class LoginForm(FlaskForm):
@@ -119,13 +121,13 @@ def after_request(callback):
 
 
 @login_manager.user_loader
-def load_user(username):
+def load_user(uid):
     if app.config['DEBUG'] and not app.config['USE_LDAP']:
-        return User.get_or_create(username=username, defaults={
-            'name': username,
+        return User.get_or_create(username='admin', defaults={
+            'name': 'admin',
             'admin': True,
         })[0]
-    return User.get(User.username == username)
+    return User.get(User.id == uid)
 
 
 @app.template_filter('euros')
