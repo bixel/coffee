@@ -37,16 +37,10 @@ from flask_login import (LoginManager,
 from flask_wtf import FlaskForm
 from flask_mail import Mail, Message
 from flask_admin import Admin
-from flask_admin.contrib.peewee import ModelView
+from flask_admin.contrib.mongoengine import ModelView
 from peewee import fn
 
-import codecs
-
-from subprocess import Popen
-
-from math import exp
-
-from database import User, Transaction, Service, Consumption, db
+from database_mongo import User, Transaction, Service, Consumption
 
 app = Flask(__name__)
 app.config.from_object('config')
@@ -114,20 +108,15 @@ def guest_required(f):
     return decorated_function
 
 
-@app.teardown_request
-def after_request(callback):
-    if not db.is_closed():
-        db.close()
-
-
 @login_manager.user_loader
-def load_user(uid):
+def load_user(username):
+    try:
+        user = User.objects.get(username=username)
+    except:
+        user = User(username=username, name=username).save()
     if app.config['DEBUG'] and not app.config['USE_LDAP']:
-        return User.get_or_create(username='admin', defaults={
-            'name': 'admin',
-            'admin': True,
-        })[0]
-    return User.get(User.id == uid)
+        user.admin = True
+    return user
 
 
 @app.template_filter('euros')
@@ -143,17 +132,31 @@ def is_admin():
 @login_required
 def index():
     coffee_prices = app.config['COFFEE_PRICES']
-    target_budget = ((
-            Consumption
-            .select(fn.SUM(Consumption.units * Consumption.price_per_unit))
-            .scalar() or 0
-        ) + (
-            Transaction
-            .select(fn.SUM(Transaction.diff))
-            .where(Transaction.user == None)  # noqa
-            .scalar() or 0
-        ))
-    actual_budget = Transaction.select(fn.SUM(Transaction.diff)).scalar() or 0
+    total_consumptions = list(Consumption.objects.aggregate(
+        {
+            '$group': {
+                '_id': 'total',
+                'total': {'$sum': {'$multiply': ['$units', '$price_per_unit']}},
+            }
+        }
+    ))[0]['total']
+    total_expenses = list(Transaction.objects(user=None).aggregate(
+        {
+            '$group': {
+                '_id': 'total',
+                'total': {'$sum': '$diff'},
+            }
+        }
+    ))[0]['total']
+    target_budget = total_consumptions + total_expenses
+    actual_budget = list(Transaction.objects.aggregate(
+        {
+            '$group': {
+                '_id': 'total',
+                'total': {'$sum': '$diff'},
+            }
+        }
+    ))[0]['total']
 
     return render_template(
         "global.html", current_budget=actual_budget,
@@ -180,7 +183,7 @@ def personal():
 def personal_data():
     data = []
 
-    user = User.get(User.id == current_user.id)
+    user = User.objects.get(username=current_user.username)
     for t in user.transactions:
         data.append((t.date.date(), t.diff))
 
@@ -225,8 +228,16 @@ def switch_to_user(username):
 
 def ldap_login(username, password, remember=False):
     if app.config['DEBUG'] and not app.config['USE_LDAP']:
-        user, created = User.get_or_create(username=username,
-                                           defaults={'name': username})
+        try:
+            user = User.objects.get(username=username)
+            user.admin = True
+        except DoesNotExist:
+            user = User(username=username, name=username, admin=True,
+                        active=True, email='dev@coffee.dev').save()
+            warning = 'User did not exist, admin user created.'
+            print(warning)
+            flash(warning)
+        print('try to log in %s' % user)
         login_user(user, remember=remember)
         return True
 
@@ -485,23 +496,6 @@ def administrate_expenses():
     return redirect(url_for('coffee.admin'))
 
 
-# @app.route('/admin/service.pdf')
-# @login_required
-# def administrate_service_list():
-#     services = Service.select().order_by(Service.date.desc())[0:5]
-#     services = list(reversed(services))
-#     string = render_template('service.tex', services=services)
-#     with codecs.open('build/service.tex', 'w', 'utf-8') as f:
-#         f.write(string)
-#     p = Popen(
-#         '/Library/Tex/texbin/lualatex --interaction=batchmode'
-#         ' --output-directory=build build/service.tex',
-#         shell=True
-#     )
-#     p.wait()
-#     return send_from_directory('build', 'service.pdf')
-#
-#
 # @app.route('/administrate/service/update/')
 # @login_required
 # def administrate_service_update():
@@ -522,33 +516,6 @@ def administrate_expenses():
 #     return 'Services Updated: {}'.format(
 #         ['{}'.format(st.user.name) for st in services]
 #     )
-
-
-@bp.route('/admin/list.pdf')
-@login_required
-def administrate_list():
-    users = []
-    for u in User.select().where(User.active | User.vip).order_by(User.name):
-        consumptions = sorted(u.consumptions, key=lambda x: x.date)
-        if not u.vip and (consumptions and (
-                datetime.utcnow() - consumptions[-1].date) > timedelta(90)):
-            u.active = False
-            u.save()
-        else:
-            users.append(u)
-    string = render_template('list.tex',
-                             current_date=datetime.utcnow(),
-                             users=users,
-                             vip=list(User.select(User.name).where(User.vip)))
-    with codecs.open('build/list.tex', 'w', 'utf-8') as f:
-        f.write(string)
-    p = Popen(
-        '/Library/Tex/texbin/lualatex --interaction=batchmode'
-        ' --output-directory=build build/list.tex',
-        shell=True
-    )
-    p.wait()
-    return send_from_directory('build', 'list.pdf')
 
 
 @bp.route("/logout")
@@ -581,7 +548,4 @@ login_manager.login_view = 'login'
 app.register_blueprint(bp, url_prefix=app.config['BASEURL'])
 
 if __name__ == '__main__':
-    if db.is_closed():
-        db.connect()
-        db.create_tables([User, Transaction, Consumption, Service], safe=True)
     app.run(host=app.config['SERVER'], port=app.config['PORT'])

@@ -9,7 +9,7 @@ from mongoengine import (connect,
                          ListField,
                          EmbeddedDocumentField,
                          )
-
+from math import exp
 from datetime import datetime
 
 connect('coffeedb')
@@ -58,7 +58,7 @@ class User(Document):
         return True
 
     def get_id(self):
-        return self.id
+        return str(self.id)
 
     @property
     def is_anonymous(self):
@@ -74,16 +74,48 @@ class User(Document):
 
     @property
     def payments(self):
-        return 0
+        return self.backref(
+            {'$sum': '$diff'},
+            Transaction
+        )
 
     @property
     def consume(self):
+        return self.backref(
+            {'$sum': {'$multiply': ['$units', '$price_per_unit']}},
+            Consumption
+        )
 
-        return 0
+    def backref(self, field, Reference, default=0):
+        """ Apply aggregations on Documents referencing the User document.
+        """
+        pipeline = [
+            {
+                '$group': {
+                    '_id': '$user',
+                    'f': field,
+                },
+            },
+        ]
+        result = list(Reference.objects(user=self).aggregate(*pipeline))
+        if len(result):
+            return result[0]['f']
+        else:
+            return default
 
     @property
     def score(self):
-        return 0
+        services = 0
+        consumptions = 1
+        now = datetime.utcnow()
+        for s in Service.objects(user=self):
+            timediff = now - s.date
+            services += s.service_count * exp(-timediff.days / 365)
+        for c in Consumption.objects(user=self):
+            timediff = now - c.date
+            units = c.units or 0
+            consumptions += units * exp(-timediff.days / 365)
+        return services**3 / consumptions
 
     def get_uids():
         return [('1', 'dev')]
