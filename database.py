@@ -1,38 +1,55 @@
-from peewee import (SqliteDatabase,
-                    CharField,
-                    BooleanField,
-                    Model,
-                    IntegerField,
-                    ForeignKeyField,
-                    DateField,
-                    DateTimeField,
-                    DeferredRelation,
-                    fn,
-                    JOIN,
-                    )
-
+from mongoengine import (connect,
+                         Document,
+                         EmbeddedDocument,
+                         StringField,
+                         BooleanField,
+                         DateTimeField,
+                         ReferenceField,
+                         IntField,
+                         ListField,
+                         EmbeddedDocumentField,
+                         )
 from math import exp
+import pendulum
+from flask import flash
 
-import os
-from datetime import datetime
-
-from config import DATABASE_FILE
-
-DBPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                      DATABASE_FILE)
-
-db = SqliteDatabase(DBPATH)
+connect('coffeedb')
 
 
-class BaseModel(Model):
-    class Meta:
-        database = db
+class Transaction(Document):
+    date = DateTimeField(default=pendulum.now())
+    description = StringField(null=True)
+    diff = IntField()
+    user = ReferenceField('User', null=True)
+
+    def __str__(self):
+        return self.description
 
 
-class User(BaseModel):
-    username = CharField(unique=True)
-    name = CharField(null=True)
-    email = CharField(null=True)
+class Consumption(Document):
+    date = DateTimeField(default=pendulum.now())
+    units = IntField(default=1)
+    price_per_unit = IntField()
+    user = ReferenceField('User')
+
+    def __str__(self):
+        return '{}\'s consumtion of {} units, {} each'.format(
+            self.user.name,
+            self.units,
+            self.price_per_unit,
+        )
+
+
+class Service(Document):
+    date = DateTimeField()
+    service_count = IntField(default=1)
+    user = ReferenceField('User')
+
+
+class User(Document):
+    username = StringField(required=True, unique=True)
+    name = StringField()
+    email = StringField()
     active = BooleanField(default=True)
     vip = BooleanField(default=False)
     admin = BooleanField(default=False)
@@ -42,7 +59,7 @@ class User(BaseModel):
         return True
 
     def get_id(self):
-        return self.id
+        return self.username
 
     @property
     def is_anonymous(self):
@@ -58,78 +75,62 @@ class User(BaseModel):
 
     @property
     def payments(self):
-        return (User
-                .select(fn.SUM(Transaction.diff).alias('_payments'))
-                .where(User.id==self.id)
-                .join(Transaction, JOIN.LEFT_OUTER)
-                .get()
-                ._payments) or 0
+        return self.backref(
+            {'$sum': '$diff'},
+            Transaction
+        )
+
+    @property
+    def consume(self):
+        return self.backref(
+            {'$sum': {'$multiply': ['$units', '$price_per_unit']}},
+            Consumption
+        )
+
+    def backref(self, field, Reference, default=0):
+        """ Apply aggregations on Documents referencing the User document.
+        """
+        pipeline = [
+            {
+                '$group': {
+                    '_id': '$user',
+                    'f': field,
+                },
+            },
+        ]
+        result = list(Reference.objects(user=self).aggregate(*pipeline))
+        if len(result):
+            return result[0]['f']
+        else:
+            return default
 
     @property
     def score(self):
         services = 0
         consumptions = 1
-        now = datetime.now()
-        for s in self.services:
-            timediff = now.date() - s.date
+        now = pendulum.now()
+        for s in Service.objects(user=self):
+            timediff = now - s.date
             services += s.service_count * exp(-timediff.days / 365)
-        for c in self.consumptions:
+        for c in Consumption.objects(user=self):
             timediff = now - c.date
             units = c.units or 0
             consumptions += units * exp(-timediff.days / 365)
         return services**3 / consumptions
 
-    @property
-    def consume(self):
-        return (User
-                .select(fn.SUM(Consumption.units * Consumption.price_per_unit).alias('_consume'))
-                .where(User.id==self.id)
-                .join(Consumption, JOIN.LEFT_OUTER)
-                .get()
-                ._consume) or 0
+    def delete(self, *args, **kwargs):
+        assert(self.username != 'DELETED_USERS')
+        try:
+            guest_user = User.objects.get(username='DELETED_USERS')
+        except:
+            flash('No `DELETED_USERS` user found. Skipping Delete.')
+            return
+        Transaction.objects(user=self).update(user=guest_user)
+        Consumption.objects(user=self).update(user=guest_user)
+        super().delete(*args, **kwargs)
 
     def get_uids():
-        users = User.select().order_by(User.name)
-        return map(lambda u: (u.id, u.name), users)
-
-    def delete_instance(self, *args, **kwargs):
-        guest_user, created = User.get_or_create(username='DELETED_USERS', defaults={
-            'name': 'Nutzersammeltonne',
-            'active': False,
-        })
-        Transaction.update(user=guest_user).where(Transaction.user==self).execute()
-        Consumption.update(user=guest_user).where(Consumption.user==self).execute()
-        return super(User, self).delete_instance(*args, **kwargs)
+        return [(str(u.id), u.name) for u in User.objects.order_by('name')]
 
     def __str__(self):
         return 'User `{}`'.format(self.username)
-
-
-class Transaction(BaseModel):
-    date = DateTimeField(default=datetime.now)
-    user = ForeignKeyField(User, null=True, related_name='transactions')
-    description = CharField()
-    diff = IntegerField()
-
-    def __str__(self):
-        return self.description
-
-
-class Service(BaseModel):
-    date = DateField()
-    user = ForeignKeyField(User, related_name='services')
-    service_count = IntegerField(default=1)
-
-
-class Consumption(BaseModel):
-    date = DateTimeField(default=datetime.now)
-    units = IntegerField(default=1)
-    price_per_unit = IntegerField()
-    user = ForeignKeyField(User, related_name='consumptions')
-
-    def __str__(self):
-        return '{}\'s consumtion of {} units, {} each'.format(
-            self.user.name,
-            self.units,
-            self.price_per_unit,
-        )

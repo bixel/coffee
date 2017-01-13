@@ -38,9 +38,8 @@ from flask_wtf import FlaskForm
 from flask_mail import Mail, Message
 from flask_admin import Admin
 from flask_admin.contrib.mongoengine import ModelView
-from peewee import fn
 
-from database_mongo import User, Transaction, Service, Consumption
+from database import User, Transaction, Service, Consumption
 
 app = Flask(__name__)
 app.config.from_object('config')
@@ -78,12 +77,12 @@ class FlexibleDecimalField(DecimalField):
 
 
 class PaymentForm(FlaskForm):
-    uid = SelectField('Name', choices=[], coerce=int)
+    uid = SelectField('Name', choices=[], coerce=str)
     amount = FlexibleDecimalField('Amount')
 
 
 class ConsumptionForm(FlaskForm):
-    uid = SelectField('Name', choices=[], coerce=int)
+    uid = SelectField('Name', choices=[], coerce=str)
     units = FieldList(IntegerField('Units', [validators.optional()]))
 
 
@@ -110,7 +109,6 @@ def guest_required(f):
 
 @login_manager.user_loader
 def load_user(username):
-    print("load_user: %s" % username)
     try:
         user = User.objects.get(username=username)
     except:
@@ -169,7 +167,6 @@ def index():
 @bp.route('/personal/')
 @login_required
 def personal():
-    print(current_user.username)
     user = User.objects.get(username=current_user.username)
     balance = user.balance
     if balance > 0:
@@ -196,7 +193,7 @@ def personal_data():
     for c in Consumption.objects(user=user).order_by('-date'):
         current_date = c.date.date()
         weekly -= c.units * c.price_per_unit
-        if current_date < last_total:
+        if current_date <= last_total:
             data.append((last_total, weekly))
             weekly = 0
             # use the last friday to calculate total consumption for one week
@@ -218,13 +215,12 @@ def global_data():
 
 
 def switch_to_user(username):
-    user = User.get(User.username == username)
+    user = User.objects.get(username=username)
     logout_user()
     login_user(user, remember=True, force=True)
 
 
 def ldap_login(username, password, remember=False):
-    print(username, password)
     if app.config['DEBUG'] and not app.config['USE_LDAP']:
         try:
             user = User.objects.get(username=username)
@@ -233,9 +229,7 @@ def ldap_login(username, password, remember=False):
             user = User(username=username, name=username, admin=True,
                         active=True, email='dev@coffee.dev').save()
             warning = 'User did not exist, admin user created.'
-            print(warning)
             flash(warning)
-        print('try to log in %s' % user)
         login_user(user, remember=remember)
         return True
 
@@ -245,13 +239,11 @@ def ldap_login(username, password, remember=False):
             user = User.objects.get(username=username)
         except:
             user = User(username=username)
-        print(user)
         user.name = str(data[0]['cn'])
         try:
             user.email = str(data[0]['mail'])
         except KeyError:
             print('A user has no mail entry in LDAP!')
-        print(user.name, user.email)
         user.active = True
         user.save()
         login_user(user, remember=remember)
@@ -322,7 +314,7 @@ def submit_payment():
 
     uid = pform.uid.data
     amount = float(pform.amount.data) * 100
-    user = User.get(User.id == uid)
+    user = User.objects.get(id=uid)
     transaction = Transaction(user=user, diff=amount,
                               description='{} payment from {}'
                               .format(euros(amount), user.name))
@@ -395,7 +387,7 @@ def administrate_consumption():
         return 'Form not valid'
 
     uid = cform.uid.data
-    user = User.get(User.id == uid)
+    user = User.objects.get(id=uid)
     user.active = True
     user.save()
 
@@ -408,6 +400,7 @@ def administrate_consumption():
         if(u):
             consumption = Consumption(units=u, price_per_unit=c[0], user=user)
             consumption.save()
+    flash('Consumptions for user %s added.' % user)
     balance = user.balance
     if balance < app.config['BUDGET_WARN_BELOW']:
         if user.email:
