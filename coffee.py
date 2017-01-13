@@ -225,7 +225,7 @@ def ldap_login(username, password, remember=False):
         try:
             user = User.objects.get(username=username)
             user.admin = True
-        except DoesNotExist:
+        except:
             user = User(username=username, name=username, admin=True,
                         active=True, email='dev@coffee.dev').save()
             warning = 'User did not exist, admin user created.'
