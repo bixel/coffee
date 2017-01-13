@@ -110,10 +110,11 @@ def guest_required(f):
 
 @login_manager.user_loader
 def load_user(username):
+    print("load_user: %s" % username)
     try:
         user = User.objects.get(username=username)
     except:
-        user = User(username=username, name=username).save()
+        user = User(username=username, name=username)
     if app.config['DEBUG'] and not app.config['USE_LDAP']:
         user.admin = True
     return user
@@ -168,7 +169,8 @@ def index():
 @bp.route('/personal/')
 @login_required
 def personal():
-    user = User.get(User.username == current_user.username)
+    print(current_user.username)
+    user = User.objects.get(username=current_user.username)
     balance = user.balance
     if balance > 0:
         balance_type = 'positive'
@@ -184,14 +186,14 @@ def personal_data():
     data = []
 
     user = User.objects.get(username=current_user.username)
-    for t in user.transactions:
+    for t in Transaction.objects(user=user):
         data.append((t.date.date(), t.diff))
 
     # calculate consumption every friday
     weekly = 0
     current_date = datetime.today().date()
     last_total = current_date
-    for c in user.consumptions.order_by(Consumption.date.desc()):
+    for c in Consumption.objects(user=user).order_by('-date'):
         current_date = c.date.date()
         weekly -= c.units * c.price_per_unit
         if current_date < last_total:
@@ -201,7 +203,7 @@ def personal_data():
             last_total = current_date - timedelta(days=current_date.weekday() + 3)
 
     result = []
-    for (d, a) in sorted(data, key=lambda x: x[0], reverse=True):
+    for (d, a) in sorted(data, key=lambda x: x[0]):
         result.append({'date': str(d), 'amount': a})
 
     return jsonify(data=result)
@@ -210,14 +212,9 @@ def personal_data():
 @bp.route('/global_data.json')
 @login_required
 def global_data():
-    changes = Transaction.select()
-    li = []
-    for c in changes:
-        li.append((str(c.date.date()), c.diff, c.description))
-    result = []
-    for l in sorted(li, key=lambda x: x[0]):
-        result.append({'date': l[0], 'amount': l[1], 'description': l[2]})
-    return jsonify(data=result)
+    li = [dict(date=str(t.date.date()), amount=t.diff, description=t.description)
+          for t in Transaction.objects.order_by('date')]
+    return jsonify(data=li)
 
 
 def switch_to_user(username):
@@ -227,6 +224,7 @@ def switch_to_user(username):
 
 
 def ldap_login(username, password, remember=False):
+    print(username, password)
     if app.config['DEBUG'] and not app.config['USE_LDAP']:
         try:
             user = User.objects.get(username=username)
@@ -243,12 +241,17 @@ def ldap_login(username, password, remember=False):
 
     data = ldap_authenticate(username, password)
     if data:
-        user, created = User.get_or_create(username=username)
-        user.name = data[0]['cn']
         try:
-            user.email = data[0]['mail']
+            user = User.objects.get(username=username)
+        except:
+            user = User(username=username)
+        print(user)
+        user.name = str(data[0]['cn'])
+        try:
+            user.email = str(data[0]['mail'])
         except KeyError:
             print('A user has no mail entry in LDAP!')
+        print(user.name, user.email)
         user.active = True
         user.save()
         login_user(user, remember=remember)
@@ -272,7 +275,7 @@ def login():
 
 def get_listofshame():
     entries = []
-    for u in User.select():
+    for u in User.objects():
         entries.append({'name': u.name,
                         'balance': u.balance,
                         'username': u.username,

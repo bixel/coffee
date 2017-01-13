@@ -58,7 +58,7 @@ class User(Document):
         return True
 
     def get_id(self):
-        return str(self.id)
+        return self.username
 
     @property
     def is_anonymous(self):

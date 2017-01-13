@@ -1,6 +1,6 @@
 function draw_table(file, columns, id) {
     d3.json(file, function(error, raw_json) {
-        var data = raw_json.data;
+        var data = raw_json.data.reverse();
         var table = d3.select(id).append("table").attr("class", "table table-striped"),
             thead = table.append("thead"),
             tbody = table.append("tbody");
