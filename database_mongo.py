@@ -11,6 +11,7 @@ from mongoengine import (connect,
                          )
 from math import exp
 from datetime import datetime
+from flask import flash
 
 connect('coffeedb')
 
@@ -116,6 +117,17 @@ class User(Document):
             units = c.units or 0
             consumptions += units * exp(-timediff.days / 365)
         return services**3 / consumptions
+
+    def delete(self, *args, **kwargs):
+        assert(self.username != 'DELETED_USERS')
+        try:
+            guest_user = User.objects.get(username='DELETED_USERS')
+        except:
+            flash('No `DELETED_USERS` user found. Skipping Delete.')
+            return
+        Transaction.objects(user=self).update(user=guest_user)
+        Consumption.objects(user=self).update(user=guest_user)
+        super().delete(*args, **kwargs)
 
     def get_uids():
         return [('1', 'dev')]
