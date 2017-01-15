@@ -7,7 +7,7 @@ from database_mongo import (User as MUser,
 
 for user in SUser.select():
     new_user = MUser(username=user.username, name=user.name, email=user.email,
-                     active=user.active, admin=user.admin).save()
+                     active=user.active, admin=user.admin, vip=user.vip).save()
     for c in user.consumptions:
         new_c = MConsumption(date=c.date, units=c.units, user=new_user,
                              price_per_unit=c.price_per_unit).save()
