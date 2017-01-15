@@ -186,18 +186,19 @@ def personal_data():
     for t in Transaction.objects(user=user):
         data.append((t.date.date(), t.diff))
 
-    # calculate consumption every friday
-    weekly = 0
-    current_date = datetime.today().date()
-    last_total = current_date
-    for c in Consumption.objects(user=user).order_by('-date'):
-        current_date = c.date.date()
-        weekly -= c.units * c.price_per_unit
-        if current_date <= last_total:
-            data.append((last_total, weekly))
-            weekly = 0
-            # use the last friday to calculate total consumption for one week
-            last_total = current_date - timedelta(days=current_date.weekday() + 3)
+    consumptions = list(Consumption.objects(user=user).order_by('-date'))
+    if len(consumptions):
+        # calculate consumption every friday
+        weekly = 0
+        last_total = consumptions[0].date.date()
+        for c in consumptions:
+            current_date = c.date.date()
+            weekly -= c.units * c.price_per_unit
+            if current_date <= last_total:
+                data.append((last_total, weekly))
+                weekly = 0
+                # use the last friday to calculate total consumption for one week
+                last_total = current_date - timedelta(days=current_date.weekday() + 3)
 
     result = []
     for (d, a) in sorted(data, key=lambda x: x[0]):
@@ -440,14 +441,16 @@ def api(function):
         # always calculate user list
         today = datetime.now().replace(hour=0, minute=0)
         users = []
-        for user in User.select().where(User.active).order_by(User.vip.desc(), User.name):
+        # for user in User.select().where(User.active).order_by(User.vip.desc(), User.name):
+        for user in User.objects(active=True).order_by('-vip', 'name'):
             user_dict = {
                 'name': user.name,
                 'username': user.username,
-                'id': user.id,
+                'id': str(user.id),
                 'consume': []
             }
-            for consume in user.consumptions.where(Consumption.date >= today):
+            # for consume in user.consumptions.where(Consumption.date >= today):
+            for consume in Consumption.objects(user=user, date__gte=today):
                 user_dict['consume'].extend(
                     consume.units * [prices[consume.price_per_unit]]
                 )
