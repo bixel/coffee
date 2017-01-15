@@ -5,12 +5,13 @@ const nodeModulesPath = path.resolve(__dirname, 'node_modules');
 
 const config = {
   // Entry points to the project
-  entry: [
-    path.join(__dirname, '/static/app/app.js'),
-  ],
+  entry: {
+    app: path.join(__dirname, '/static/app/app.js'),
+    admin: path.join(__dirname, '/static/admin/admin.js')
+  },
   output: {
     path: buildPath, // Path of output file
-    filename: 'app.js',
+    filename: '[name].bundle.js',
     publicPath: '/dev-bundle/',
   },
   module: {

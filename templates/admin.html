@@ -87,27 +87,10 @@
   </div>
 </form>
 
-<h2>List of Shame</h2>
-<table class="table table-striped">
-  <thead>
-    <tr>
-      <th>Amount / €</th>
-      <th>Name (switch-to via link)</th>
-      <th>Score</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for entry in listofshame %}
-    <tr>
-      <td>{{ '%2.2f' % (entry.balance / 100) }}</td>
-      <td>
-        <a href="{{ url_for('coffee.administrate_switch_user', username=entry.username) }}">
-          {{ entry.name }}
-        </a>
-      </td>
-      <td>{{ entry.score }}</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+<div id="listofshame"></div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="{{ code_url }}"></script>
 {% endblock %}

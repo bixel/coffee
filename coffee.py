@@ -106,6 +106,15 @@ def guest_required(f):
             abort(403)
     return decorated_function
 
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if app.config['DEBUG'] or current_user.admin:
+            return f(*args, **kwargs)
+        else:
+            abort(403)
+    return decorated_function
+
 
 @login_manager.user_loader
 def load_user(username):
@@ -121,10 +130,6 @@ def load_user(username):
 @app.template_filter('euros')
 def euros(amount):
     return '{:.2f}€'.format(amount / 100)
-
-
-def is_admin():
-    return current_user.admin or app.config['DEBUG']
 
 
 @bp.route('/', methods=['GET', 'POST'])
@@ -266,24 +271,16 @@ def login():
     return render_template('login.html', form=form)
 
 
-def get_listofshame():
-    entries = []
-    for u in User.objects():
-        entries.append({'name': u.name,
-                        'balance': u.balance,
-                        'username': u.username,
-                        'active': u.active,
-                        'score': u.score})
-    li = sorted(entries, key=lambda e: (-e['active'], e['balance']))
-    return li
+def js_url(script):
+    if request.args.get('jsdev'):
+        return 'http://localhost:8080/dev-bundle/%s.bundle.js' % script
+    else:
+        return url_for('coffee.static', filename='build/%s.bundle.js' % script)
 
 
 @bp.route('/admin/')
-@login_required
+@admin_required
 def admin():
-    if not is_admin():
-        return abort(403)
-
     pform = PaymentForm()
     pform.uid.choices = User.get_uids()
     cform = ConsumptionForm()
@@ -292,21 +289,32 @@ def admin():
         cform.units.append_entry()
         cform.units[-1].label = title
     eform = ExpenseForm()
-    listofshame = get_listofshame()
     mail_form = MailCredentialsForm()
     return render_template('admin.html', payment_form=pform,
                            consumption_form=cform, expense_form=eform,
                            mail_form=mail_form,
                            mail_username=app.config['MAIL_USERNAME'] or '',
-                           listofshame=listofshame)
+                           code_url=js_url('admin'))
+
+
+@bp.route('/admin/api/<function>/')
+@admin_required
+def admin_api(function):
+    if function == 'listofshame':
+        users = [{'name': u.name,
+                  'balance': u.balance,
+                  'score': u.score,
+                  'id': str(u.id),
+                  'switch_url': url_for('coffee.administrate_switch_user', username=u.username)
+                  }
+                  for u in User.objects(active=True)
+                ]
+        return jsonify(list=users)
 
 
 @bp.route("/admin/payment/", methods=['POST'])
-@login_required
+@admin_required
 def submit_payment():
-    if not is_admin():
-        return abort(403)
-
     pform = PaymentForm()
     pform.uid.choices = User.get_uids()
     if not pform.validate_on_submit():
@@ -338,11 +346,8 @@ def submit_payment():
 
 
 @bp.route("/admin/switch-to-user/<username>/")
-@login_required
+@admin_required
 def administrate_switch_user(username):
-    if not is_admin():
-        return abort(403)
-
     switch_to_user(username)
     if username == 'guest':
         return redirect(url_for('coffee.mobile_app'))
@@ -351,7 +356,7 @@ def administrate_switch_user(username):
 
 
 @bp.route("/admin/mail-credentials/", methods=['POST'])
-@login_required
+@admin_required
 def administrate_mail_credentials():
     mform = MailCredentialsForm()
     if not mform.validate_on_submit():
@@ -377,11 +382,8 @@ def warning_mail(user):
 
 
 @bp.route("/administrate/consumption", methods=['POST'])
-@login_required
+@admin_required
 def administrate_consumption():
-    if not is_admin():
-        return abort(403)
-
     cform = ConsumptionForm()
     cform.uid.choices = User.get_uids()
     if not cform.validate_on_submit():
@@ -424,11 +426,7 @@ def administrate_consumption():
 @bp.route("/app/", methods=['GET'])
 @guest_required
 def mobile_app():
-    if request.args.get('jsdev'):
-        code_url = 'http://localhost:8080/dev-bundle/app.js'
-    else:
-        code_url = url_for('coffee.static', filename='build/app.js')
-    return render_template('app.html', code_url=code_url)
+    return render_template('app.html', code_url=js_url('app'))
 
 
 @bp.route("/app/api/<function>/", methods=['GET', 'POST'])
@@ -471,11 +469,8 @@ def api(function):
 
 
 @bp.route("/administrate/expenses", methods=['POST'])
-@login_required
+@admin_required
 def administrate_expenses():
-    if not is_admin():
-        return abort(403)
-
     eform = ExpenseForm()
     if not eform.validate_on_submit():
         for field, errors in eform.errors.items():
