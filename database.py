@@ -44,6 +44,10 @@ class Service(Document):
     date = DateTimeField()
     service_count = IntField(default=1)
     user = ReferenceField('User')
+    master = BooleanField(default=True)
+    cleaned = BooleanField(default=False)
+    cleaning_program = BooleanField(default=False)
+    decalcify_program = BooleanField(default=False)
 
 
 class User(Document):
@@ -106,9 +110,12 @@ class User(Document):
 
     @property
     def score(self):
+        if self.vip:
+            return 100
+
         services = 0
         consumptions = 1
-        now = pendulum.now()
+        now = Service.objects.order_by('-date').first().date
         for s in Service.objects(user=self):
             timediff = now - s.date
             services += s.service_count * exp(-timediff.days / 365)

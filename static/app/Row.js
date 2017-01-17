@@ -1,5 +1,6 @@
 import React, {Component} from 'react';
 import AddButton from './AddButton.js';
+import ServiceButton from './ServiceButton.js';
 import { Icon } from './Icon.js';
 
 export default class Row extends Component {
@@ -24,6 +25,7 @@ export default class Row extends Component {
         <Icon key={i} product={this.props.products[product]} size={24} />)
       ) :
       '';
+    const service = this.props.service ? <ServiceButton uid={this.props.userId} /> : '';
     return <div className="row" style={this.props.style}>
       <div className="col-xs-7" style={{marginTop: '6px', fontSize: '24px'}}>
         {this.props.name}<br />
@@ -31,7 +33,7 @@ export default class Row extends Component {
       </div>
       <div className="col-xs-5">
         <div className="btn-toolbar" style={{float: "right"}}>
-          {buttons}
+          {service}{buttons}
         </div>
       </div>
     </div>

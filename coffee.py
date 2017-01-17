@@ -1,6 +1,7 @@
 from functools import wraps
 
 from datetime import datetime, timedelta
+import pendulum
 from ldap3 import Server, Connection
 from wtforms import (StringField,
                      PasswordField,
@@ -98,6 +99,7 @@ class MailCredentialsForm(FlaskForm):
 
 
 def guest_required(f):
+    @login_required
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if app.config['DEBUG'] or current_user.username == 'guest':
@@ -106,7 +108,9 @@ def guest_required(f):
             abort(403)
     return decorated_function
 
+
 def admin_required(f):
+    @login_required
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if app.config['DEBUG'] or current_user.admin:
@@ -297,19 +301,41 @@ def admin():
                            code_url=js_url('admin'))
 
 
-@bp.route('/admin/api/<function>/')
+@bp.route('/admin/api/<function>/', methods=['GET', 'POST'])
 @admin_required
 def admin_api(function):
+    def listofshame():
+        return [{'name': u.name,
+                 'balance': u.balance,
+                 'score': u.score,
+                 'id': str(u.id),
+                 'switch_url': url_for('coffee.administrate_switch_user', username=u.username),
+                 'vip': u.vip
+                 }
+                 for u in User.objects(active=True)
+               ]
+
+    def next_service_periods():
+        latest_service = pendulum.from_timestamp(Service.objects.order_by('-date')
+                                                 .first().date.timestamp())
+        periods = []
+        for _ in range(8):
+            nmo = latest_service.next(pendulum.MONDAY)
+            nfr = nmo.next(pendulum.FRIDAY)
+            periods.append('%s:%s' %(nmo.to_date_string(), nfr.to_date_string()))
+            latest_service = nfr
+        return periods
+
     if function == 'listofshame':
-        users = [{'name': u.name,
-                  'balance': u.balance,
-                  'score': u.score,
-                  'id': str(u.id),
-                  'switch_url': url_for('coffee.administrate_switch_user', username=u.username)
-                  }
-                  for u in User.objects(active=True)
-                ]
-        return jsonify(list=users)
+        return jsonify(list=listofshame(), nextServicePeriods=next_service_periods())
+
+    if function == 'add_service':
+        data = request.get_json()
+        user = User.objects.get(id=data.get('uid'))
+        start, end = [pendulum.parse(d) for d in data.get('interval').split(':')]
+        for day in pendulum.period(start, end):
+            Service(user=user, date=day).save()
+        return jsonify(list=listofshame(), nextServicePeriods=next_service_periods())
 
 
 @bp.route("/admin/payment/", methods=['POST'])
@@ -456,7 +482,14 @@ def api(function):
         return users
 
     if function == 'user_list':
-        return jsonify(users=get_userlist())
+        current_service = Service.objects(date__gte=pendulum.today(), master=True).first()
+        service = {
+            'uid': str(current_service.user.id),
+            'cleaned': current_service.cleaned,
+            'cleaningProgram': current_service.cleaning_program,
+            'decalcifyProgram': current_service.decalcify_program,
+        }
+        return jsonify(users=get_userlist(), service=service)
 
     if function == 'add_consumption':
         data = request.get_json()
@@ -466,6 +499,13 @@ def api(function):
                               date=datetime.now()).save()
         status = 'success' if created else 'failure'
         return jsonify(status=status, users=get_userlist())
+
+    if function == 'finish_service':
+        data = request.get_json()
+        service = Service.objects(date__gte=pendulum.today(), master=True).first()
+        service.__setattr__(data.get('service'), True)
+        service.save()
+        return jsonify(success=True)
 
 
 @bp.route("/administrate/expenses", methods=['POST'])
@@ -488,28 +528,6 @@ def administrate_expenses():
     t.save()
     flash('Transaction stored.')
     return redirect(url_for('coffee.admin'))
-
-
-# @app.route('/administrate/service/update/')
-# @login_required
-# def administrate_service_update():
-#     services = []
-#     users = User.query.filter(User.active, User.vip == false()).all()
-#     users = sorted(users, key=lambda x: x.score)
-#     last_service = Service.query.order_by(Service.date.desc()).first()
-#     last_date = last_service.date
-#     for u in users[0:5]:
-#         s = Service(
-#             start=last_date + timedelta(3),
-#             end=last_date + timedelta(7),
-#         )
-#         services.append(s)
-#         u.services.append(s)
-#         last_date += timedelta(7)
-#     db.session.commit()
-#     return 'Services Updated: {}'.format(
-#         ['{}'.format(st.user.name) for st in services]
-#     )
 
 
 @bp.route("/logout")

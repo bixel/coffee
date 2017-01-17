@@ -17,6 +17,7 @@ export default class List extends Component {
         },
       },
       users: [],
+      service: {},
     };
     this.url = window.location.origin + window.location.pathname;
   }
@@ -44,6 +45,7 @@ export default class List extends Component {
     $.getJSON(this.url + 'api/user_list/', (data) => {
       this.setState({
         users: data.users,
+        service: data.service,
       });
     });
   }
@@ -69,6 +71,7 @@ export default class List extends Component {
         key={i}
         userId={user.id}
         consume={user.consume}
+        service={user.id === this.state.service.uid}
         style={{background: background, padding: "4px"}}
         modifyDatabase={(db_entry) => this.addConsumption(db_entry)}
       />
