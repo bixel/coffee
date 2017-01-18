@@ -7,7 +7,7 @@ const styles = {
     borderRadius: ".25rem",
   },
   dropdown: {
-    fontSize: "28px",
+    fontSize: "24px",
     padding: "20px 10px",
   }
 }
@@ -38,7 +38,7 @@ export default class ServiceButton extends Component {
         className="btn btn-secondary" style={styles.button}
         data-toggle="dropdown">
           Service<br />
-          ⛛
+          +
       </button>
       <div className="dropdown-menu" aria-labelledby="btnGroupDrop1">
         <a className="dropdown-item" style={styles.dropdown} href="#"

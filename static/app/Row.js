@@ -27,11 +27,11 @@ export default class Row extends Component {
       '';
     const service = this.props.service ? <ServiceButton uid={this.props.userId} /> : '';
     return <div className="row" style={this.props.style}>
-      <div className="col-xs-7" style={{marginTop: '6px', fontSize: '24px'}}>
+      <div className={this.props.service ? "col-xs-5" : "col-xs-7"} style={{marginTop: '6px', fontSize: '24px'}}>
         {this.props.name}<br />
         {mugs}
       </div>
-      <div className="col-xs-5">
+      <div className={this.props.service ? "col-xs-7" : "col-xs-5"}>
         <div className="btn-toolbar" style={{float: "right"}}>
           {service}{buttons}
         </div>
