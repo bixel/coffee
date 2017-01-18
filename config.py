@@ -31,3 +31,5 @@ MAIL_DEFAULT_SENDER = os.environ.get('COFFEE_MAILADDRESS', 'admin@coffee.dev')
 BUDGET_WARN_BELOW = 0
 
 BASEURL = os.environ.get('COFFEE_BASEURL', '')
+
+TZ = os.environ.get('COFFEE_TIMEZONE', 'Europe/Berlin')

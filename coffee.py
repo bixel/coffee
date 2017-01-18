@@ -482,7 +482,7 @@ def api(function):
         return users
 
     if function == 'user_list':
-        current_service = Service.objects(date__lte=pendulum.today(), master=True).first()
+        current_service = Service.objects(date__lte=pendulum.today(app.config['TZ']), master=True).first()
         service = {
             'uid': str(current_service.user.id),
             'cleaned': current_service.cleaned,
@@ -502,7 +502,7 @@ def api(function):
 
     if function == 'finish_service':
         data = request.get_json()
-        service = Service.objects(date__gte=pendulum.today(), master=True).first()
+        service = Service.objects(date__gte=pendulum.today(app.config['TZ']), master=True).first()
         service.__setattr__(data.get('service'), True)
         service.save()
         return jsonify(success=True)
