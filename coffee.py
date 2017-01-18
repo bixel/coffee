@@ -543,8 +543,9 @@ def ldap_authenticate(username, password):
         ldap_server = Server(app.config['LDAP_HOST'], port=app.config['LDAP_PORT'])
         base_dn = app.config['LDAP_SEARCH_BASE']
         ldap_conn = Connection(ldap_server,
-                               "uid={},cn=users,{}".format(username, base_dn),
-                               password)
+                               "uid={},{}".format(username, base_dn),
+                               password,
+                               auto_bind=True)
         if ldap_conn.search(base_dn,
                             '(&(objectclass=person)(uid={}))'.format(username),
                             attributes=['mail', 'cn']):
