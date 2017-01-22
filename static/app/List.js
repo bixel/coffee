@@ -71,7 +71,7 @@ export default class List extends Component {
         key={i}
         userId={user.id}
         consume={user.consume}
-        service={user.id === this.state.service.uid}
+        service={user.id === this.state.service.uid ? this.state.service : undefined}
         style={{background: background, padding: "4px"}}
         modifyDatabase={(db_entry) => this.addConsumption(db_entry)}
       />

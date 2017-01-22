@@ -42,11 +42,20 @@ export default class ServiceButton extends Component {
       </button>
       <div className="dropdown-menu" aria-labelledby="btnGroupDrop1">
         <a className="dropdown-item" style={styles.dropdown} href="#"
-          onClick={e => {e.preventDefault(); this.sendService("cleaned");}}>Gereinigt</a>
+          onClick={e => {e.preventDefault(); this.sendService("cleaned");}}>
+          Gereinigt
+          {this.props.service.cleaned ? " ✅" : ""}
+        </a>
         <a className="dropdown-item" style={styles.dropdown} href="#"
-          onClick={e => {e.preventDefault(); this.sendService("cleaning_program");}}>Reinigungsprogramm</a>
+          onClick={e => {e.preventDefault(); this.sendService("cleaning_program");}}>
+          Reinigungsprogramm
+          {this.props.service.cleaningProgram ? " ✅" : ""}
+        </a>
         <a className="dropdown-item" style={styles.dropdown} href="#"
-          onClick={e => {e.preventDefault(); this.sendService("decalcify_program");}}>Entkalkungsprogramm</a>
+          onClick={e => {e.preventDefault(); this.sendService("decalcify_program");}}>
+          Entkalkungsprogramm
+          {this.props.service.decalcifyProgram ? " ✅" : ""}
+        </a>
       </div>
     </div>
   }
