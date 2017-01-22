@@ -219,8 +219,8 @@ def personal_data():
 @bp.route('/global_data.json')
 @login_required
 def global_data():
-    li = [dict(date=str(t.date.date()), amount=t.diff, description=t.description)
-          for t in Transaction.objects.order_by('date')]
+    li = [dict(date=str(t.date.date()), amount=t.diff)
+          for t in Transaction.objects.only('date', 'diff').order_by('date')]
     return jsonify(data=li)
 
 
@@ -465,7 +465,6 @@ def api(function):
         # always calculate user list
         today = pendulum.today(app.config['TZ'])
         users = []
-        # for user in User.select().where(User.active).order_by(User.vip.desc(), User.name):
         for user in User.objects(active=True).order_by('-vip', 'name'):
             user_dict = {
                 'name': user.name,
@@ -473,11 +472,11 @@ def api(function):
                 'id': str(user.id),
                 'consume': []
             }
-            # for consume in user.consumptions.where(Consumption.date >= today):
             for consume in Consumption.objects(user=user, date__gte=today):
-                user_dict['consume'].extend(
-                    consume.units * [prices[consume.price_per_unit]]
-                )
+                if consume.price_per_unit in prices:
+                    user_dict['consume'].extend(
+                        consume.units * [prices.get(consume.price_per_unit)]
+                    )
             users.append(user_dict)
         return users
 
@@ -494,7 +493,7 @@ def api(function):
     if function == 'add_consumption':
         data = request.get_json()
         created = Consumption(user=data['id'],
-                              price_per_unit=products[data['consumption_type']],
+                              price_per_unit=products.get(data['consumption_type']),
                               units=data['cur_consumption'],
                               date=datetime.now()).save()
         status = 'success' if created else 'failure'
