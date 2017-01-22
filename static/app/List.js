@@ -45,7 +45,7 @@ export default class List extends Component {
     $.getJSON(this.url + 'api/user_list/', (data) => {
       this.setState({
         users: data.users,
-        service: data.service,
+        service: data.service ? data.service : this.state.service,
       });
     });
   }

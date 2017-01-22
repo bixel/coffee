@@ -12,7 +12,7 @@ from mongoengine import (connect,
 from math import exp
 import pendulum
 from flask import flash
-from config import DB_HOST, DB_PORT
+from config import DB_HOST, DB_PORT, TZ
 
 connect('coffeedb', host=DB_HOST, port=DB_PORT)
 
@@ -49,6 +49,13 @@ class Service(Document):
     cleaned = BooleanField(default=False)
     cleaning_program = BooleanField(default=False)
     decalcify_program = BooleanField(default=False)
+
+    def current():
+        return (Service
+                .objects(date__lte=pendulum.today(TZ), master=True)
+                .order_by('-date')
+                .first()
+                )
 
 
 class User(Document):

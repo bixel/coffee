@@ -463,7 +463,7 @@ def api(function):
 
     def get_userlist():
         # always calculate user list
-        today = datetime.now().replace(hour=0, minute=0)
+        today = pendulum.today(app.config['TZ'])
         users = []
         # for user in User.select().where(User.active).order_by(User.vip.desc(), User.name):
         for user in User.objects(active=True).order_by('-vip', 'name'):
@@ -482,13 +482,13 @@ def api(function):
         return users
 
     if function == 'user_list':
-        current_service = Service.objects(date__lte=pendulum.today(app.config['TZ']), master=True).first()
+        current_service = Service.current()
         service = {
             'uid': str(current_service.user.id),
             'cleaned': current_service.cleaned,
             'cleaningProgram': current_service.cleaning_program,
             'decalcifyProgram': current_service.decalcify_program,
-        }
+        } if current_service else None
         return jsonify(users=get_userlist(), service=service)
 
     if function == 'add_consumption':
@@ -502,10 +502,12 @@ def api(function):
 
     if function == 'finish_service':
         data = request.get_json()
-        service = Service.objects(date__gte=pendulum.today(app.config['TZ']), master=True).first()
+        service = Service.current()
         service.__setattr__(data.get('service'), True)
         service.save()
         return jsonify(success=True)
+
+    return abort(404)
 
 
 @bp.route("/administrate/expenses", methods=['POST'])
