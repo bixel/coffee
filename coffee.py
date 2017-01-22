@@ -492,12 +492,20 @@ def api(function):
 
     if function == 'add_consumption':
         data = request.get_json()
-        created = Consumption(user=data['id'],
+        user = User.objects.get(id=data.get('id'))
+        created = Consumption(user=user,
                               price_per_unit=products.get(data['consumption_type']),
                               units=data['cur_consumption'],
                               date=datetime.now()).save()
+        if user.balance < app.config['BUDGET_WARN_BELOW']:
+            alert = {
+                'text': 'Geringes Guthaben, bitte laden Sie bald wieder auf.',
+                'type': 'warning',
+            }
+        else:
+            alert = None
         status = 'success' if created else 'failure'
-        return jsonify(status=status, users=get_userlist())
+        return jsonify(status=status, users=get_userlist(), alert=alert)
 
     if function == 'finish_service':
         data = request.get_json()

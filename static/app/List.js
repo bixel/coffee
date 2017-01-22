@@ -1,6 +1,7 @@
 import React, {Component} from 'react';
 import Row from './Row.js';
 import AddButton from './AddButton.js';
+import Alert from './Alert.js';
 
 export default class List extends Component {
   constructor(props, context){
@@ -31,6 +32,7 @@ export default class List extends Component {
         if(data.users){
           this.setState({
             users: data.users,
+            alert: data.alert,
           });
         }
       },
@@ -83,11 +85,17 @@ export default class List extends Component {
                   modifyDatabase={(db_entry) => this.addConsumption(db_entry)}
         />)
     }
+    let alert = '';
+    if(this.state.alert){
+      alert = <Alert type={this.state.alert.type}>{this.state.alert.text}</Alert>;
+      setTimeout(() => this.setState({ alert: undefined, }), 5000);
+    };
     return <div className="container" style={{margin: "0px", width: "100%"}}>
       <div className="row"><div className="col-xs-12">
         <h1>Kaffeeliste</h1>
       </div></div>
       {rows}
+      {alert}
     </div>
   }
 }
