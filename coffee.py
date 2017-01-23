@@ -56,12 +56,22 @@ login_manager.blueprint_login_views = {
 
 mail = Mail(app)
 
-admin = Admin(app, name='E5 MoCA DB ADMIN', template_mode='bootstrap3', url=app.config['BASEURL'] + '/admin/db')
 
-admin.add_view(ModelView(User))
-admin.add_view(ModelView(Transaction))
-admin.add_view(ModelView(Service))
-admin.add_view(ModelView(Consumption))
+class AuthenticatedModelView(ModelView):
+    def is_accessible(self):
+        try:
+            return current_user.admin
+        except:
+            return False
+
+
+admin = Admin(app, name='E5 MoCA DB ADMIN', template_mode='bootstrap3',
+              url=app.config['BASEURL'] + '/admin/db')
+
+admin.add_view(AuthenticatedModelView(User))
+admin.add_view(AuthenticatedModelView(Transaction))
+admin.add_view(AuthenticatedModelView(Service))
+admin.add_view(AuthenticatedModelView(Consumption))
 
 
 class LoginForm(FlaskForm):
