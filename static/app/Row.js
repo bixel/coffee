@@ -25,7 +25,7 @@ export default class Row extends Component {
         <Icon key={i} product={this.props.products[product]} size={24} />)
       ) :
       '';
-    const service = this.props.service ? <ServiceButton service={this.props.service} /> : '';
+    const service = this.props.service ? <ServiceButton service={this.props.service} sendService={s => this.props.sendService(s)} /> : '';
     return <div className="row" style={this.props.style}>
       <div className={this.props.service ? "col-xs-5" : "col-xs-7"} style={{marginTop: '6px', fontSize: '24px'}}>
         {this.props.name}<br />

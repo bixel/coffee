@@ -18,20 +18,6 @@ export default class ServiceButton extends Component {
     this.url = window.location.origin + window.location.pathname;
   }
 
-  sendService(service){
-    $.post({
-      url: this.url + 'api/finish_service/',
-      data: JSON.stringify({service: service}),
-      success: data => {
-        window.alert('Service eingetragen!');
-      },
-      contentType: 'application/json; charset=utf-8',
-      dataType: 'json',
-    }).fail(error => {
-      console.log('Error while finishing service.', error);
-    });
-  }
-
   render(){
     return <div className="btn-group" role="group">
       <button id="btnGroupDrop1" type="button"
@@ -42,17 +28,17 @@ export default class ServiceButton extends Component {
       </button>
       <div className="dropdown-menu" aria-labelledby="btnGroupDrop1">
         <a className="dropdown-item" style={styles.dropdown} href="#"
-          onClick={e => {e.preventDefault(); this.sendService("cleaned");}}>
+          onClick={e => {e.preventDefault(); this.props.sendService("cleaned");}}>
           Gereinigt
           {this.props.service.cleaned ? " ✅" : ""}
         </a>
         <a className="dropdown-item" style={styles.dropdown} href="#"
-          onClick={e => {e.preventDefault(); this.sendService("cleaning_program");}}>
+          onClick={e => {e.preventDefault(); this.props.sendService("cleaning_program");}}>
           Reinigungsprogramm
           {this.props.service.cleaningProgram ? " ✅" : ""}
         </a>
         <a className="dropdown-item" style={styles.dropdown} href="#"
-          onClick={e => {e.preventDefault(); this.sendService("decalcify_program");}}>
+          onClick={e => {e.preventDefault(); this.props.sendService("decalcify_program");}}>
           Entkalkungsprogramm
           {this.props.service.decalcifyProgram ? " ✅" : ""}
         </a>

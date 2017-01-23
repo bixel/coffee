@@ -28,14 +28,7 @@ export default class List extends Component {
     $.post({
       url: this.url + 'api/add_consumption/',
       data: JSON.stringify(db_entry),
-      success: data => {
-        if(data.users){
-          this.setState({
-            users: data.users,
-            alert: data.alert,
-          });
-        }
-      },
+      success: data => this.setState(data),
       contentType: 'application/json; charset=utf-8',
       dataType: 'json',
     }).fail(error => {
@@ -44,11 +37,18 @@ export default class List extends Component {
   }
 
   componentDidMount(){
-    $.getJSON(this.url + 'api/user_list/', (data) => {
-      this.setState({
-        users: data.users,
-        service: data.service ? data.service : this.state.service,
-      });
+    $.getJSON(this.url + 'api/user_list/', data => this.setState(data));
+  }
+
+  sendService(service){
+    $.post({
+      url: this.url + 'api/finish_service/',
+      data: JSON.stringify({service: service}),
+      success: data => this.setState(data),
+      contentType: 'application/json; charset=utf-8',
+      dataType: 'json',
+    }).fail(error => {
+      console.log('Error while finishing service.', error);
     });
   }
 
@@ -75,7 +75,8 @@ export default class List extends Component {
         consume={user.consume}
         service={user.id === this.state.service.uid ? this.state.service : undefined}
         style={{background: background, padding: "4px"}}
-        modifyDatabase={(db_entry) => this.addConsumption(db_entry)}
+        modifyDatabase={db_entry => this.addConsumption(db_entry)}
+        sendService={service => this.sendService(service)}
       />
     })
     if(guestUser){

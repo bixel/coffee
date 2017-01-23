@@ -490,7 +490,7 @@ def api(function):
             users.append(user_dict)
         return users
 
-    if function == 'user_list':
+    def get_service():
         current_service = Service.current()
         service = {
             'uid': str(current_service.user.id),
@@ -498,7 +498,10 @@ def api(function):
             'cleaningProgram': current_service.cleaning_program,
             'decalcifyProgram': current_service.decalcify_program,
         } if current_service else None
-        return jsonify(users=get_userlist(), service=service)
+        return service
+
+    if function == 'user_list':
+        return jsonify(users=get_userlist(), service=get_service())
 
     if function == 'add_consumption':
         data = request.get_json()
@@ -522,7 +525,7 @@ def api(function):
         service = Service.current()
         service.__setattr__(data.get('service'), True)
         service.save()
-        return jsonify(success=True)
+        return jsonify(service=get_service(), alert={'text': 'Service eingetragen', 'type': 'success'})
 
     return abort(404)
 
