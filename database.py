@@ -52,7 +52,7 @@ class Service(Document):
 
     def current():
         return (Service
-                .objects(date__lte=pendulum.today(TZ), master=True)
+                .objects(date__lte=pendulum.now(TZ), master=True)
                 .order_by('-date')
                 .first()
                 )
