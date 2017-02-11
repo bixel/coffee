@@ -99,6 +99,39 @@ class User(Document):
             Consumption
         )
 
+    def consumption_list(self):
+        match = {'$match': {'user': self.id}}
+        # id will be an integer representing YYYYWW
+        group_id = {'$sum': [
+            {'$multiply': [100, {'$year': '$date'}]},
+            {'$week': '$date'}
+        ]}
+        consume_pipeline = [
+            match,
+            {
+                '$group': {
+                    '_id': group_id,
+                    'diff': {
+                        '$sum': {'$multiply': [-1, '$units', '$price_per_unit']},
+                    },
+                },
+            },
+        ]
+        transaction_pipeline = [
+            match,
+            {'$group': {
+            '_id': group_id,
+            'diff': {
+                '$sum': '$diff'
+            }}},
+        ]
+        cs = list(Consumption.objects.aggregate(*consume_pipeline))
+        ts = list(Transaction.objects.aggregate(*transaction_pipeline))
+        sorted_result = sorted(cs + ts, key=lambda t: t['_id'])
+        return [{'amount': t['diff'],
+                 'date': pendulum.from_format('%d1' % t['_id'], '%Y%W%w').to_date_string()}
+                 for t in sorted_result]
+
     def backref(self, field, Reference, default=0):
         """ Apply aggregations on Documents referencing the User document.
         """

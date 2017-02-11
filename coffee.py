@@ -199,31 +199,8 @@ def personal():
 @bp.route('/personal_data.json')
 @login_required
 def personal_data():
-    data = []
-
     user = User.objects.get(username=current_user.username)
-    for t in Transaction.objects(user=user):
-        data.append((t.date.date(), t.diff))
-
-    consumptions = list(Consumption.objects(user=user).order_by('-date'))
-    if len(consumptions):
-        # calculate consumption every friday
-        weekly = 0
-        last_total = consumptions[0].date.date()
-        for c in consumptions:
-            current_date = c.date.date()
-            weekly -= c.units * c.price_per_unit
-            if current_date <= last_total:
-                data.append((last_total, weekly))
-                weekly = 0
-                # use the last friday to calculate total consumption for one week
-                last_total = current_date - timedelta(days=current_date.weekday() + 3)
-
-    result = []
-    for (d, a) in sorted(data, key=lambda x: x[0]):
-        result.append({'date': str(d), 'amount': a})
-
-    return jsonify(data=result)
+    return jsonify(data=user.consumption_list())
 
 
 @bp.route('/global_data.json')
