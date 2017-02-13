@@ -4,7 +4,16 @@
 <h2>Coffee History <small>{{ user.name }}</small></h2>
 <div class="row">
   <div class="col-sm-8">
-    <h2>Current balance: <span class="{{ balance_type }}">{{ balance | euros }}</span></h2>
+    <table class="table">
+    <tr>
+      <td>Current balance</td>
+      <td class="{{ balance_type }}">{{ balance | euros }}</td>
+    </tr>
+    <tr>
+      <td>Last service</td>
+      <td>{{ user.last_service.date or "never" }}</td>
+    </tr>
+    </table>
     <div id="personal_graph"></div>
     <script>
       draw_graph('{{ url_for('coffee.personal_data') }}', '#personal_graph', 400, 400)

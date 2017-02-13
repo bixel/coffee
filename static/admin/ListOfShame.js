@@ -11,13 +11,19 @@ export default class ListOfShame extends Component {
     this.listOrder = {
       balance: (user1, user2) => (user1.balance - user2.balance),
       score: (user1, user2) => (user1.score - user2.score),
+      last_service: (user1, user2) => (user1.last_service - user2.last_service),
     }
   }
 
   componentDidMount(){
     $.getJSON(this.url + 'api/listofshame/', (data) => {
+      // First convert all dates to js date objects
+      var list = data.list.map(item => {
+        item.last_service = new Date(item.last_service);
+        return item;
+      });
       this.setState({
-        list: data.list.sort(this.listOrder[this.state.order]),
+        list: list.sort(this.listOrder[this.state.order]),
         nextServicePeriods: data.nextServicePeriods,
       });
     });
@@ -80,6 +86,7 @@ export default class ListOfShame extends Component {
         <td><a href={user.switch_url}>{user.name}</a></td>
         <td>{user.vip ? '' : user.score.toFixed(4)}</td>
         <td>{user.vip ? '' : serviceToolbar(user.id)}</td>
+        <td>{user.last_service.toLocaleDateString()}</td>
       </tr>
     ));
     return <table className="table table-striped table-hover">
@@ -87,7 +94,8 @@ export default class ListOfShame extends Component {
         <tr>
           <th><a href="#" onClick={e => {e.preventDefault(); this.changeOrder("balance");}}>Balance</a></th>
           <th>User</th>
-          <th colsPan="2"><a href="#" onClick={e => {e.preventDefault(); this.changeOrder("score");}}>Score</a></th>
+          <th colSpan="2"><a href="#" onClick={e => {e.preventDefault(); this.changeOrder("score");}}>Score</a></th>
+          <th><a href="#" onClick={e => {e.preventDefault(); this.changeOrder("last_service");}}>Last Service</a></th>
         </tr>
       </thead>
       <tbody>

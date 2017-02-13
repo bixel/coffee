@@ -21,10 +21,10 @@
   stroke-width: 3.0px;
 }
 
-span.negative {
+td.negative {
     color: #FC381E;
 }
 
-span.positive {
+td.positive {
     color: #66FF43;
 }

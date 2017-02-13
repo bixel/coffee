@@ -297,7 +297,8 @@ def admin_api(function):
                  'score': u.score,
                  'id': str(u.id),
                  'switch_url': url_for('coffee.administrate_switch_user', username=u.username),
-                 'vip': u.vip
+                 'vip': u.vip,
+                 'last_service': getattr(u.last_service, 'date', None),
                  }
                  for u in User.objects(active=True)
                ]

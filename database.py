@@ -150,6 +150,14 @@ class User(Document):
             return default
 
     @property
+    def last_service(self):
+        """ Return the latest service object, where the given user did the
+            master service.
+        """
+        return (Service.objects(user=self.id, master=True, cleaned=True)
+                .order_by('-date').first())
+
+    @property
     def score(self):
         if self.vip:
             return 100
