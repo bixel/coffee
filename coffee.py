@@ -108,6 +108,14 @@ class MailCredentialsForm(FlaskForm):
     password = PasswordField('Password')
 
 
+def mail_available():
+    try:
+        with mail.connect() as _:
+            return True
+    except:
+        return False
+
+
 def guest_required(f):
     @login_required
     @wraps(f)
@@ -285,7 +293,8 @@ def admin():
                            consumption_form=cform, expense_form=eform,
                            mail_form=mail_form,
                            mail_username=app.config['MAIL_USERNAME'] or '',
-                           code_url=js_url('admin'))
+                           code_url=js_url('admin'),
+                           mail_status=mail_available())
 
 
 @bp.route('/admin/api/<function>/', methods=['GET', 'POST'])
@@ -379,7 +388,11 @@ def administrate_mail_credentials():
         app.config['MAIL_USERNAME'] = mform.mail_user.data
         app.config['MAIL_PASSWORD'] = mform.password.data
         mail.init_app(app)
-        flash('Mail credentials updated')
+        if mail_available():
+            flash('Mail credentials updated')
+        else:
+            flash('Mail connection could not be established.')
+
     return redirect(url_for('coffee.admin'))
 
 
