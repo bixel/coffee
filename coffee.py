@@ -2,7 +2,6 @@ from functools import wraps
 
 from datetime import datetime, timedelta
 import pendulum
-from ldap3 import Server, Connection
 from wtforms import (StringField,
                      PasswordField,
                      BooleanField,
@@ -40,7 +39,10 @@ from flask_mail import Mail, Message
 from flask_admin import Admin
 from flask_admin.contrib.mongoengine import ModelView
 
+from mongoengine import connect
+
 from database import User, Transaction, Service, Consumption
+from authentication import user_login
 
 app = Flask(__name__)
 app.config.from_object('config')
@@ -225,38 +227,6 @@ def switch_to_user(username):
     login_user(user, remember=True, force=True)
 
 
-def ldap_login(username, password, remember=False):
-    if app.config['DEBUG'] and not app.config['USE_LDAP']:
-        try:
-            user = User.objects.get(username=username)
-            user.admin = True
-        except:
-            user = User(username=username, name=username, admin=True,
-                        active=True, email='dev@coffee.dev').save()
-            warning = 'User did not exist, admin user created.'
-            flash(warning)
-        login_user(user, remember=remember)
-        return True
-
-    data = ldap_authenticate(username, password)
-    if data:
-        try:
-            user = User.objects.get(username=username)
-        except:
-            user = User(username=username)
-        user.name = str(data[0]['cn'])
-        try:
-            user.email = str(data[0]['mail'])
-        except KeyError:
-            print('A user has no mail entry in LDAP!')
-        user.active = True
-        user.save()
-        login_user(user, remember=remember)
-        return True
-    else:
-        return False
-
-
 @bp.route("/login", methods=['GET', 'POST'])
 def login():
     form = LoginForm()
@@ -264,7 +234,7 @@ def login():
         username = form.username.data
         password = form.password.data
         remember = form.remember.data
-        if not ldap_login(username, password, remember=remember):
+        if not user_login(username, password, remember=remember):
             return '<h1>Login failed</h1>'
         return redirect(url_for('coffee.index'))
     return render_template('login.html', form=form)
@@ -549,29 +519,12 @@ def logout():
     return redirect(url_for('coffee.login'))
 
 
-def ldap_authenticate(username, password):
-    # the guest user is special
-    assert(username != 'guest')
-    try:
-        ldap_server = Server(app.config['LDAP_HOST'], port=app.config['LDAP_PORT'])
-        base_dn = app.config['LDAP_SEARCH_BASE']
-        ldap_conn = Connection(ldap_server,
-                               "uid={},{}".format(username, base_dn),
-                               password,
-                               auto_bind=True)
-        if ldap_conn.search(base_dn,
-                            '(&(objectclass=person)(uid={}))'.format(username),
-                            attributes=['mail', 'cn']):
-            return ldap_conn.entries
-    except:
-        pass
-
-    return None
-
-
 login_manager.login_view = 'login'
 
 app.register_blueprint(bp, url_prefix=app.config['BASEURL'])
 
 if __name__ == '__main__':
+    connect(app.config['DB_NAME'],
+            host=app.config['DB_HOST'],
+            port=app.config['DB_PORT'])
     app.run(host=app.config['SERVER'], port=app.config['PORT'])

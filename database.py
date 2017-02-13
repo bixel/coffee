@@ -12,9 +12,7 @@ from mongoengine import (connect,
 from math import exp
 import pendulum
 from flask import flash
-from config import DB_HOST, DB_PORT, TZ
-
-connect('coffeedb', host=DB_HOST, port=DB_PORT)
+from config import DB_NAME, DB_HOST, DB_PORT, TZ
 
 
 class Transaction(Document):

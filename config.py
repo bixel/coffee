@@ -2,6 +2,7 @@ import os
 import sys
 
 DEBUG = os.environ.get("COFFEE_DEBUG", 'False') == 'True'
+TESTING = False
 USE_LDAP = os.environ.get("COFFEE_LDAP", 'True') == 'True'
 SECRET_KEY = os.environ.get('COFFEE_SECRET_KEY', 'super_secret')
 if SECRET_KEY == 'super_secret' and not DEBUG:
@@ -11,6 +12,7 @@ COFFEE_PRICES = [
     [50, u'Milchkaffee']
 ]
 
+DB_NAME = os.environ.get('COFFEE_DB_NAME', 'coffeedb')
 DB_HOST = os.environ.get('COFFEE_DB_HOST', '127.0.0.1')
 DB_PORT = os.environ.get('COFFEE_DB_PORT', 27017)
 
