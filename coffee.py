@@ -28,6 +28,7 @@ from flask import (Flask,
                    flash,
                    jsonify,
                    Blueprint,
+                   session,
                    abort)
 from flask_login import (LoginManager,
                          login_user,

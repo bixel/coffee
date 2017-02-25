@@ -1,4 +1,5 @@
 from ldap3 import Server, Connection
+from ldap3.core.exceptions import LDAPBindError
 from config import (LDAP_HOST,
                     LDAP_PORT,
                     LDAP_SEARCH_BASE,
@@ -7,11 +8,14 @@ from config import (LDAP_HOST,
                     TESTING)
 from database import User
 from flask_login import login_user
+from flask import flash
 
 
 def ldap_authenticate(username, password):
     # the guest user is special
-    assert(username != 'guest')
+    if username == 'guest':
+        return None
+
     try:
         ldap_server = Server(LDAP_HOST, port=LDAP_PORT)
         base_dn = LDAP_SEARCH_BASE
@@ -23,10 +27,10 @@ def ldap_authenticate(username, password):
                             '(&(objectclass=person)(uid={}))'.format(username),
                             attributes=['mail', 'cn']):
             return ldap_conn.entries
-    except:
-        pass
-
-    return None
+    except LDAPBindError as e:
+        if DEBUG:
+            print(e)
+        return None
 
 
 def ldap_login(username, password, remember=False):
@@ -49,9 +53,9 @@ def ldap_login(username, password, remember=False):
         except:
             user = User(username=username)
         user.name = str(data[0]['cn'])
-        try:
+        if data[0]['mail']:
             user.email = str(data[0]['mail'])
-        except KeyError:
+        else:
             print('A user has no mail entry in LDAP!')
         user.active = True
         user.save()

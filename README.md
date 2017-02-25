@@ -30,6 +30,13 @@ develop javascript stuff and the `webpack-dev-server` is running (aka `npm
 start`). The `jsdev=true` enables javascript auto-reloading by using
 [webpack-dev-sever](https://webpack.github.io/docs/webpack-dev-server.html).
 
+I suggest docker to run a local ldap server:
+```
+docker run -d -p 389:389 -e SLAPD_PASSWORD=password -e SLAPD_DOMAIN=coffee.ldap dinkel/openldap
+ldapadd -x -D cn=admin,dc=coffee,dc=ldap -w password -f ./ldap_test_data.ldif
+```
+Thanks to user @dinkel for contributing the openldap image.
+
 ## Docker
 There is also a Dockerfile which uses miniconda and installs everything needed
 to serve the coffee app.

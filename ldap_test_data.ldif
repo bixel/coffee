@@ -1,0 +1,52 @@
+dn: ou=people,dc=coffee,dc=ldap
+objectclass: organizationalUnit
+## must:
+ou: people
+
+## testuser
+dn: uid=testuser,ou=people,dc=coffee,dc=ldap
+objectClass: inetOrgPerson
+objectClass: posixAccount
+## must:
+cn: testuser
+givenName: Givenname
+sn: Surname
+uid: testuser
+uidNumber: 10000
+gidNumber: 10000
+homeDirectory: /nonexistent
+## may:
+# password is "foobar"
+userPassword: {CRYPT}x6t7sYgk89VcY
+
+## admin
+dn: uid=admin,ou=people,dc=coffee,dc=ldap
+objectClass: inetOrgPerson
+objectClass: posixAccount
+## must:
+cn: admin
+givenName: Givenname
+sn: Surname
+uid: admin
+uidNumber: 10000
+gidNumber: 10000
+homeDirectory: /nonexistent
+## may:
+# password is "foobar"
+userPassword: {CRYPT}x6t7sYgk89VcY
+
+## newuser
+dn: uid=newuser,ou=people,dc=coffee,dc=ldap
+objectClass: inetOrgPerson
+objectClass: posixAccount
+## must:
+cn: newuser
+givenName: Givenname
+sn: Surname
+uid: newuser
+uidNumber: 10000
+gidNumber: 10000
+homeDirectory: /nonexistent
+## may:
+# password is "foobar"
+userPassword: {CRYPT}x6t7sYgk89VcY

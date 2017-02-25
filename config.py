@@ -16,8 +16,8 @@ DB_NAME = os.environ.get('COFFEE_DB_NAME', 'coffeedb')
 DB_HOST = os.environ.get('COFFEE_DB_HOST', '127.0.0.1')
 DB_PORT = os.environ.get('COFFEE_DB_PORT', 27017)
 
-LDAP_HOST = os.environ.get('COFFEE_LDAP_HOST')
-LDAP_SEARCH_BASE = os.environ.get('COFFEE_LDAP_SEARCH')
+LDAP_HOST = os.environ.get('COFFEE_LDAP_HOST', 'localhost')
+LDAP_SEARCH_BASE = os.environ.get('COFFEE_LDAP_SEARCH', 'ou=people,dc=coffee,dc=ldap')
 LDAP_PORT = 389
 
 SERVER = os.environ.get('COFFEE_SERVER', 'localhost')

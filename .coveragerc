@@ -1,3 +1,6 @@
 [run]
 include =
-    ./*.py
+    ./authentication.py
+    ./coffee.py
+    ./config.py
+    ./database.py
