@@ -15,15 +15,25 @@ pip install -r requirements.txt
 COFFEE_DEBUG=True COFFEE_LDAP=False python coffee.py
 ```
 
+Before logging in and playing around you need to start a mongodb instance.
+I like to use docker for that:
+```
+docker run -d --name coffee-db -v /var/db/mongo/:/data/db -p 27017:27017 mongo
+```
+This command will mount the local directory `/data/db` in which the database
+files will be available throughout different docker sessions.
+(Once created via `docker run`, the container can be stopped or started with `docker
+stop/start coffee-db`.)
+
 The webapp for "Kaffeeliste 2.0" will be built with
 ```
 npm install
 npm start
 ```
 
-In debug mode, you can log in with any user (default location is
-[localhost:5000](http://localhost:5000)), the use record will be created lazily
-and everyone is admin.
+In debug mode (`COFFEE_DEBUG=True`), you can log in with any user (default location is
+[localhost:5000](http://localhost:5000)), the user record will be created
+lazily and everyone is admin (be careful).
 
 Afterwards, go to http://localhost:5000/app/?jsdev=true if you want to
 develop javascript stuff and the `webpack-dev-server` is running (aka `npm
