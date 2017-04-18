@@ -18,7 +18,7 @@ connect('coffeedb', host=DB_HOST, port=DB_PORT)
 
 
 class Transaction(Document):
-    date = DateTimeField(default=pendulum.now())
+    date = DateTimeField(default=pendulum.now)
     description = StringField(null=True)
     diff = IntField()
     user = ReferenceField('User', null=True)
@@ -28,7 +28,7 @@ class Transaction(Document):
 
 
 class Consumption(Document):
-    date = DateTimeField(default=pendulum.now())
+    date = DateTimeField(default=pendulum.now)
     units = IntField(default=1)
     price_per_unit = IntField()
     user = ReferenceField('User')
