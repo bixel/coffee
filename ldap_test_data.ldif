@@ -15,6 +15,7 @@ uid: testuser
 uidNumber: 10000
 gidNumber: 10000
 homeDirectory: /nonexistent
+mail: testuser@coffee.py
 ## may:
 # password is "foobar"
 userPassword: {CRYPT}x6t7sYgk89VcY
@@ -31,6 +32,7 @@ uid: admin
 uidNumber: 10000
 gidNumber: 10000
 homeDirectory: /nonexistent
+mail: admin@coffee.py
 ## may:
 # password is "foobar"
 userPassword: {CRYPT}x6t7sYgk89VcY
@@ -47,6 +49,7 @@ uid: newuser
 uidNumber: 10000
 gidNumber: 10000
 homeDirectory: /nonexistent
+mail: newuser@coffee.py
 ## may:
 # password is "foobar"
 userPassword: {CRYPT}x6t7sYgk89VcY

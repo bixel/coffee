@@ -7,7 +7,6 @@ from flask import g
 class CoffeeTestCase(unittest.TestCase):
     def setUp(self):
         coffee.app.config['TESTING'] = True
-        coffee.app.config['DEBUG'] = True
         coffee.app.config['DB_NAME'] = 'coffeedb-test'
         coffee.app.config['WTF_CSRF_ENABLED'] = False
         self.app = coffee.app.test_client()
@@ -66,6 +65,32 @@ class CoffeeTestCase(unittest.TestCase):
     def test_guest_login(self):
         rv = self.login('guest', 'pw')
         assert(b'Login failed' in rv.data)
+
+    def test_admin_access(self):
+        rv = self.login('admin', 'foobar')
+        assert(b'Actual Budget' in rv.data)
+        rv = self.app.get('/admin/')
+        assert(b'Adminpanel' in rv.data)
+
+    def test_admin_access_unauthorized(self):
+        rv = self.login('testuser', 'foobar')
+        assert(b'Actual Budget' in rv.data)
+        rv = self.app.get('/admin/')
+        assert(rv.status_code == 403)
+
+    def test_admin_access_db(self):
+        rv = self.login('admin', 'foobar')
+        assert(rv.status_code == 200)
+        assert(b'Actual Budget' in rv.data)
+        rv = self.app.get('/admin/db/consumption/')
+        assert(rv.status_code == 200)
+
+    def test_admin_access_db_unauthorized(self):
+        rv = self.login('testuser', 'foobar')
+        assert(rv.status_code == 200)
+        assert(b'Actual Budget' in rv.data)
+        rv = self.app.get('/admin/db/consumption/')
+        assert(rv.status_code == 403)
 
 if __name__ == '__main__':
     unittest.main()

@@ -62,10 +62,7 @@ mail = Mail(app)
 
 class AuthenticatedModelView(ModelView):
     def is_accessible(self):
-        try:
-            return current_user.admin
-        except:
-            return False
+        return current_user.admin
 
 
 admin = Admin(app, name='E5 MoCA DB ADMIN', template_mode='bootstrap3',
