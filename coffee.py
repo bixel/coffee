@@ -161,31 +161,34 @@ def euros(amount):
 @login_required
 def index():
     coffee_prices = app.config['COFFEE_PRICES']
-    total_consumptions = list(Consumption.objects.aggregate(
+    docs = list(Consumption.objects.aggregate(
         {
             '$group': {
                 '_id': 'total',
                 'total': {'$sum': {'$multiply': ['$units', '$price_per_unit']}},
             }
         }
-    ))[0]['total']
-    total_expenses = list(Transaction.objects(user=None).aggregate(
+    ))
+    total_consumptions = docs[0]['total'] if len(docs) else 0
+    docs = list(Transaction.objects(user=None).aggregate(
         {
             '$group': {
                 '_id': 'total',
                 'total': {'$sum': '$diff'},
             }
         }
-    ))[0]['total']
+    ))
+    total_expenses = docs[0]['total'] if len(docs) else 0
     target_budget = total_consumptions + total_expenses
-    actual_budget = list(Transaction.objects.aggregate(
+    docs = list(Transaction.objects.aggregate(
         {
             '$group': {
                 '_id': 'total',
                 'total': {'$sum': '$diff'},
             }
         }
-    ))[0]['total']
+    ))
+    actual_budget = docs[0]['total'] if len(docs) else 0
 
     return render_template(
         "global.html", current_budget=actual_budget,
