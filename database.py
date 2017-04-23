@@ -16,7 +16,7 @@ from config import DB_NAME, DB_HOST, DB_PORT, TZ
 
 
 class Transaction(Document):
-    date = DateTimeField(default=pendulum.now())
+    date = DateTimeField(default=pendulum.now)
     description = StringField(null=True)
     diff = IntField()
     user = ReferenceField('User', null=True)
@@ -26,7 +26,7 @@ class Transaction(Document):
 
 
 class Consumption(Document):
-    date = DateTimeField(default=pendulum.now())
+    date = DateTimeField(default=pendulum.now)
     units = IntField(default=1)
     price_per_unit = IntField()
     user = ReferenceField('User')
