@@ -284,8 +284,11 @@ def admin_api(function):
                ]
 
     def next_service_periods():
-        latest_service = pendulum.from_timestamp(Service.objects.order_by('-date')
-                                                 .first().date.timestamp())
+        latestDate = (Service.objects.order_by('-date').first()
+                      .date.timestamp()
+                      if Service.objects
+                      else pendulum.now().timestamp())
+        latest_service = pendulum.from_timestamp(latestDate)
         periods = []
         for _ in range(8):
             nmo = latest_service.next(pendulum.MONDAY)

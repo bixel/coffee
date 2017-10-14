@@ -162,12 +162,13 @@ class User(Document):
 
         services = 0
         consumptions = 1
-        now = Service.objects.order_by('-date').first().date
+        latestService = Service.objects.order_by('-date').first()
+        latest = latestService.date if latestService else pendulum.now()
         for s in Service.objects(user=self):
-            timediff = now - s.date
+            timediff = latest - s.date
             services += s.service_count * exp(-timediff.days / 365)
         for c in Consumption.objects(user=self):
-            timediff = now - c.date
+            timediff = latest - c.date
             units = c.units or 0
             consumptions += units * exp(-timediff.days / 365)
         return services**3 / consumptions
