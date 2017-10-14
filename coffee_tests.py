@@ -5,16 +5,26 @@ from database import User, Transaction, Consumption
 from flask import g
 
 class CoffeeTestCase(unittest.TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpClass(cls):
         coffee.app.config['TESTING'] = True
         coffee.app.config['DB_NAME'] = 'coffeedb-test'
         coffee.app.config['WTF_CSRF_ENABLED'] = False
-        self.app = coffee.app.test_client()
         db = connect(coffee.app.config['DB_NAME'],
                      host=coffee.app.config['DB_HOST'],
                      port=coffee.app.config['DB_PORT'])
+
+    @classmethod
+    def tearDownClass(cls):
+        db = connect(coffee.app.config['DB_NAME'],
+                     host=coffee.app.config['DB_HOST'],
+                     port=coffee.app.config['DB_PORT'])
+        db.drop_database(coffee.app.config['DB_NAME'])
+
+    def setUp(self):
         testuser = User(username='testuser', email='test@coffee.py')
         testuser.save()
+        self.testuser = testuser
         User(username='admin', email='admin@coffee.py', admin=True).save()
         testpayment = Transaction(diff=1000, user=testuser)
         testpayment.save()
@@ -22,12 +32,12 @@ class CoffeeTestCase(unittest.TestCase):
         testexpense.save()
         testcons = Consumption(units=1, price_per_unit=50, user=testuser)
         testcons.save()
+        self.app = coffee.app.test_client()
 
     def tearDown(self):
-        db = connect(coffee.app.config['DB_NAME'],
-                     host=coffee.app.config['DB_HOST'],
-                     port=coffee.app.config['DB_PORT'])
-        db.drop_database(coffee.app.config['DB_NAME'])
+        User.drop_collection()
+        Transaction.drop_collection()
+        Consumption.drop_collection()
 
     def test_index_redirect(self):
         rv = self.app.get('/')
@@ -91,6 +101,15 @@ class CoffeeTestCase(unittest.TestCase):
         assert(b'Actual Budget' in rv.data)
         rv = self.app.get('/admin/db/consumption/')
         assert(rv.status_code == 403)
+
+    def test_consumption_list(self):
+        consumption_list = self.testuser.consumption_list()
+        assert(len(consumption_list) == 2)
+        assert(consumption_list[0]['amount'] == -50)
+        assert(consumption_list[1]['amount'] == 1000)
+
+    def test_last_service(self):
+        assert(self.testuser.last_service is None)
 
 if __name__ == '__main__':
     unittest.main()
