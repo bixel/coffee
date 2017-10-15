@@ -15,21 +15,50 @@ from flask import flash
 from config import DB_NAME, DB_HOST, DB_PORT, TZ
 
 
-class Transaction(Document):
+class AchievementDocument(Document):
+    @classmethod
+    def achievement(cls, f):
+        try:
+            cls.achievements += [f]
+        except:
+            cls.achievements = [f]
+        print(f'achievement registered for {cls}. New group:\n{cls.achievements}')
+        return f
+
+    def save(self, *args, **kwargs):
+        for f in self.achievements:
+            f(self)
+        return super().save(*args, **kwargs)
+
+
+    meta = {
+            'allow_inheritance': True,
+            }
+
+
+class Transaction(AchievementDocument):
     date = DateTimeField(default=pendulum.now)
     description = StringField(null=True)
     diff = IntField()
     user = ReferenceField('User', null=True)
 
+    meta = {
+        'collection': 'transaction',
+        }
+
     def __str__(self):
         return self.description
 
 
-class Consumption(Document):
+class Consumption(AchievementDocument):
     date = DateTimeField(default=pendulum.now)
     units = IntField(default=1)
     price_per_unit = IntField()
     user = ReferenceField('User')
+
+    meta = {
+        'collection': 'consumption',
+        }
 
     def __str__(self):
         return '{}\'s consumtion of {} units, {} each'.format(
@@ -39,7 +68,7 @@ class Consumption(Document):
         )
 
 
-class Service(Document):
+class Service(AchievementDocument):
     date = DateTimeField()
     service_count = IntField(default=1)
     user = ReferenceField('User')
@@ -47,6 +76,10 @@ class Service(Document):
     cleaned = BooleanField(default=False)
     cleaning_program = BooleanField(default=False)
     decalcify_program = BooleanField(default=False)
+
+    meta = {
+        'collection': 'service',
+        }
 
     def current():
         return (Service

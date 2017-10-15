@@ -44,6 +44,7 @@ from mongoengine import connect
 
 from database import User, Transaction, Service, Consumption
 from authentication import user_login
+import achievements
 
 app = Flask(__name__)
 app.config.from_object('config')
@@ -307,6 +308,8 @@ def admin_api(function):
         for day in pendulum.period(start, end):
             Service(user=user, date=day).save()
         return jsonify(list=listofshame(), nextServicePeriods=next_service_periods())
+
+    return abort(404)
 
 
 @bp.route("/admin/payment/", methods=['POST'])
