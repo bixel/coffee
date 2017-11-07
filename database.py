@@ -16,18 +16,26 @@ from config import DB_NAME, DB_HOST, DB_PORT, TZ
 
 
 class AchievementDocument(Document):
+    """ Wrapper class to attach achievements to documents.
+    On every save, each function which has been decorated as an achievement
+    will be called. This way, possible achievements can be evaluated.
+    """
     @classmethod
-    def achievement(cls, f):
+    def achievement_function(cls, f):
         try:
-            cls.achievements += [f]
+            cls.achievement_functions += [f]
         except:
-            cls.achievements = [f]
-        print(f'achievement registered for {cls}. New group:\n{cls.achievements}')
+            cls.achievement_functions = [f]
         return f
 
     def save(self, *args, **kwargs):
-        for f in self.achievements:
-            f(self)
+        try:
+            print('trying')
+            for f in self.achievement_functions:
+                f(self)
+            print(self.achievement_functions)
+        except:
+            raise
         return super().save(*args, **kwargs)
 
 
@@ -36,15 +44,22 @@ class AchievementDocument(Document):
             }
 
 
+class Achievement(EmbeddedDocument):
+    description = StringField()
+    key = StringField()
+    date = DateTimeField(default=pendulum.now)
+
+
+class AchievementDescriptions(Document):
+    key = StringField()
+    descriptions = ListField(StringField())
+
+
 class Transaction(AchievementDocument):
     date = DateTimeField(default=pendulum.now)
     description = StringField(null=True)
     diff = IntField()
     user = ReferenceField('User', null=True)
-
-    meta = {
-        'collection': 'transaction',
-        }
 
     def __str__(self):
         return self.description
@@ -55,10 +70,6 @@ class Consumption(AchievementDocument):
     units = IntField(default=1)
     price_per_unit = IntField()
     user = ReferenceField('User')
-
-    meta = {
-        'collection': 'consumption',
-        }
 
     def __str__(self):
         return '{}\'s consumtion of {} units, {} each'.format(
@@ -77,10 +88,6 @@ class Service(AchievementDocument):
     cleaning_program = BooleanField(default=False)
     decalcify_program = BooleanField(default=False)
 
-    meta = {
-        'collection': 'service',
-        }
-
     def current():
         return (Service
                 .objects(date__lte=pendulum.now(TZ), master=True)
@@ -96,6 +103,7 @@ class User(Document):
     active = BooleanField(default=True)
     vip = BooleanField(default=False)
     admin = BooleanField(default=False)
+    achievements = ListField(EmbeddedDocumentField(Achievement))
 
     @property
     def is_authenticated(self):

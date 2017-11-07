@@ -42,7 +42,7 @@ from flask_admin.contrib.mongoengine import ModelView
 
 from mongoengine import connect
 
-from database import User, Transaction, Service, Consumption
+from database import User, Transaction, Service, Consumption, AchievementDescriptions
 from authentication import user_login
 import achievements
 
@@ -74,6 +74,15 @@ class UserView(AuthenticatedModelView):
     column_default_sort = 'username'
     column_editable_list = ['vip', 'active', 'admin', 'email', 'name']
     inline_models = ['service']
+    form_subdocuments = {
+        'achievements': {
+            'form_subdocuments': {
+                None: {
+                    'form_columns': ('key', 'date')
+                    }
+                }
+            }
+        }
 
 
 class ServiceView(AuthenticatedModelView):
@@ -86,6 +95,7 @@ admin.add_view(UserView(User))
 admin.add_view(AuthenticatedModelView(Transaction))
 admin.add_view(ServiceView(Service))
 admin.add_view(AuthenticatedModelView(Consumption))
+admin.add_view(AuthenticatedModelView(AchievementDescriptions))
 
 
 class LoginForm(FlaskForm):
