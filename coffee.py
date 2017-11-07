@@ -62,16 +62,29 @@ mail = Mail(app)
 
 
 class AuthenticatedModelView(ModelView):
+    can_set_page_size = True
     def is_accessible(self):
         return current_user.admin
 
 
+class UserView(AuthenticatedModelView):
+    page_size = 1000
+    column_searchable_list = ['username', 'name', 'email']
+    column_filters = ['admin', 'active', 'vip']
+    column_default_sort = 'username'
+    column_editable_list = ['vip', 'active', 'admin', 'email', 'name']
+    inline_models = ['service']
+
+
+class ServiceView(AuthenticatedModelView):
+    column_editable_list = ['service_count', 'date', 'user']
+
+
 admin = Admin(app, name='E5 MoCA DB ADMIN', template_mode='bootstrap3',
               url=app.config['BASEURL'] + '/admin/db')
-
-admin.add_view(AuthenticatedModelView(User))
+admin.add_view(UserView(User))
 admin.add_view(AuthenticatedModelView(Transaction))
-admin.add_view(AuthenticatedModelView(Service))
+admin.add_view(ServiceView(Service))
 admin.add_view(AuthenticatedModelView(Consumption))
 
 

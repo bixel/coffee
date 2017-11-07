@@ -17,6 +17,21 @@
           %}"><a class="nav-link" href={{ url_for(endpoint) }}>{{ caption }}</a>
         {%- endfor %}
         {% block admin_navbar %}
+        <li class="nav-item dropdown">
+          <a href="#"
+               class="dropdown-toggle nav-link"
+               data-toggle="dropdown"
+               role="button"
+               aria-haspopup="true"
+               aria-expanded="false"><span class="caret"></span> Database
+          </a>
+          <ul class="dropdown-menu">
+            <li class="dropdown-item"><a href="{{ url_for('user.index_view') }}">User</a>
+            <li class="dropdown-item"><a href="{{ url_for('transaction.index_view') }}">Transaction</a>
+            <li class="dropdown-item"><a href="{{ url_for('service.index_view') }}">Service</a>
+            <li class="dropdown-item"><a href="{{ url_for('consumption.index_view') }}">Consumption</a>
+          </ul>
+        </li>
         {% endblock %}
         <li class="nav-item float-xs-right">
           <a href="{{ url_for('coffee.logout') }}" class="btn btn-default navbar-btn">Logout</a>

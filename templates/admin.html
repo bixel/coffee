@@ -1,23 +1,5 @@
 {% extends "site.html" %}
 
-{% block admin_navbar %}
-<li class="nav-item dropdown">
-  <a href="#"
-       class="dropdown-toggle nav-link"
-       data-toggle="dropdown"
-       role="button"
-       aria-haspopup="true"
-       aria-expanded="false"><span class="caret"></span>
-  </a>
-  <ul class="dropdown-menu">
-    <li class="dropdown-item"><a href="{{ url_for('admin.index') }}">Adminpanel</a>
-    {# <li><a href="{{ url_for("administrate_consumption_list") }}">Consumelist</a> #}
-    {# <li><a href="{{ url_for("administrate_service_list") }}" target="_blank">service.pdf</a> #}
-    {# <li><a href="{{ url_for("administrate_list") }}" target="_blank">list.pdf</a> #}
-  </ul>
-</li>
-{% endblock %}
-
 {% block content %}
 <div class="row">
   <div class="col-md-12">
