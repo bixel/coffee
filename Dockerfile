@@ -1,7 +1,7 @@
 FROM alpine
 
 RUN apk update
-RUN apk add python3 nodejs
+RUN apk add python3 nodejs nodejs-npm
 RUN python3 -m ensurepip
 
 ADD . /coffee
