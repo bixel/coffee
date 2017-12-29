@@ -164,16 +164,16 @@ def index():
                 '$group': {
                     '_id': 'total',
                     'total': {'$sum': {'$multiply': ['$units', '$price_per_unit']}},
-                    }
                 }
+            }
         ))[0]['total']
         total_expenses = list(Transaction.objects(user=None).aggregate(
             {
                 '$group': {
                 '_id': 'total',
                 'total': {'$sum': '$diff'},
+                }
             }
-        }
         ))[0]['total']
         target_budget = total_consumptions + total_expenses
         actual_budget = list(Transaction.objects.aggregate(
@@ -181,8 +181,8 @@ def index():
                 '$group': {
                 '_id': 'total',
                 'total': {'$sum': '$diff'},
+                }
             }
-        }
         ))[0]['total']
     except:
         total_consumptions = 0
