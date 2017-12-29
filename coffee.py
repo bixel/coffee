@@ -157,33 +157,38 @@ def euros(amount):
 @bp.route('/', methods=['GET', 'POST'])
 @login_required
 def index():
-    coffee_prices = app.config['COFFEE_PRICES']
-    total_consumptions = list(Consumption.objects.aggregate(
-        {
-            '$group': {
-                '_id': 'total',
-                'total': {'$sum': {'$multiply': ['$units', '$price_per_unit']}},
-            }
-        }
-    ))[0]['total']
-    total_expenses = list(Transaction.objects(user=None).aggregate(
-        {
-            '$group': {
-                '_id': 'total',
-                'total': {'$sum': '$diff'},
-            }
-        }
-    ))[0]['total']
-    target_budget = total_consumptions + total_expenses
-    actual_budget = list(Transaction.objects.aggregate(
-        {
-            '$group': {
+    try:
+        coffee_prices = app.config['COFFEE_PRICES']
+        total_consumptions = list(Consumption.objects.aggregate(
+            {
+                '$group': {
+                    '_id': 'total',
+                    'total': {'$sum': {'$multiply': ['$units', '$price_per_unit']}},
+                    }
+                }
+        ))[0]['total']
+        total_expenses = list(Transaction.objects(user=None).aggregate(
+            {
+                '$group': {
                 '_id': 'total',
                 'total': {'$sum': '$diff'},
             }
         }
-    ))[0]['total']
-
+        ))[0]['total']
+        target_budget = total_consumptions + total_expenses
+        actual_budget = list(Transaction.objects.aggregate(
+            {
+                '$group': {
+                '_id': 'total',
+                'total': {'$sum': '$diff'},
+            }
+        }
+        ))[0]['total']
+    except:
+        total_consumptions = 0
+        total_expenses = 0
+        target_budget = 0
+        actual_budget = 0
     return render_template(
         "global.html", current_budget=actual_budget,
         target_budget=target_budget,
