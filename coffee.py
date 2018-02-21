@@ -64,7 +64,7 @@ mail = Mail(app)
 class AuthenticatedModelView(ModelView):
     can_set_page_size = True
     def is_accessible(self):
-        return current_user.admin
+        return current_user.admin or app.config['DEBUG']
 
 
 class UserView(AuthenticatedModelView):
