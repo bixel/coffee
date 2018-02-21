@@ -223,6 +223,7 @@ class User(Document):
             return
         Transaction.objects(user=self).update(user=guest_user)
         Consumption.objects(user=self).update(user=guest_user)
+        Service.objects(user=self).update(user=guest_user)
         super().delete(*args, **kwargs)
 
     def get_uids():
