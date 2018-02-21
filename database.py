@@ -34,8 +34,10 @@ class AchievementDocument(Document):
             for f in self.achievement_functions:
                 f(self)
             print(self.achievement_functions)
-        except:
-            raise
+        except AttributeError:
+            # AttributeError is ok here since the document might not have any
+            # achievements
+            pass
         return super().save(*args, **kwargs)
 
 
