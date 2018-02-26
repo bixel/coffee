@@ -467,11 +467,13 @@ def api(function):
         today = pendulum.today(app.config['TZ'])
         users = []
         for user in User.objects(active=True).order_by('-vip', 'name'):
+            # build user dictionary manually
             user_dict = {
                 'name': user.name,
                 'username': user.username,
                 'id': str(user.id),
                 'consume': [],
+                # fill in all of todays achievements
                 'achievements': [{
                     'key': a.key,
                     'date': a.date,
@@ -479,6 +481,9 @@ def api(function):
                     for a in user.achievements
                     if a.date > pendulum.today()]
             }
+            # perform a query for todays consumptions for each user
+            # @TODO: try to move this to the mongo query... instead of hitting
+            # the DB n + 1 times.
             for consume in Consumption.objects(user=user, date__gte=today):
                 if consume.price_per_unit in prices:
                     user_dict['consume'].extend(

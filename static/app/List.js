@@ -27,6 +27,7 @@ export default class List extends Component {
     $.getJSON(this.url + 'api/user_list/', data => this.setState(data));
   }
 
+  /* @TODO this should be moved into the service button */
   sendService(service){
     $.post({
       url: this.url + 'api/finish_service/',
@@ -39,6 +40,8 @@ export default class List extends Component {
     });
   }
 
+  /* pass this function down to all elements who want to update the app state
+   */
   updateAppState(data){
     this.setState(data);
   }
