@@ -68,6 +68,7 @@ export default class List extends Component {
         userId={user.id}
         consume={user.consume}
         service={user.id === this.state.service.uid ? this.state.service : undefined}
+        achievements={user.achievements}
         style={{background: background, padding: "4px"}}
         updateAppState={data => this.updateAppState(data)}
         sendService={service => this.sendService(service)}
@@ -80,6 +81,7 @@ export default class List extends Component {
         key={rows.length}
         userId={guestUser.id}
         consume={guestUser.consume}
+        achievements={[]}
         style={{background: background, padding: "4px"}}
         updateAppState={this.updateAppState}
         />)
