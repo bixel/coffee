@@ -18,8 +18,8 @@
     "webpack-dev-server": "^3.0.0"
   },
   "scripts": {
-    "start": "webpack-dev-server --hot --inline --progress",
-    "build": "webpack",
+    "start": "webpack-dev-server --hot --inline --progress --mode development",
+    "build": "webpack --mode production",
     "test": "echo \"Error: no test specified\" && exit 1"
   }
 }
