@@ -29,6 +29,7 @@ const styles = {
     height: '20px',
     background: '#D75A4A',
     borderRadius: '10px',
+    zIndex: 10,
   },
   addBadgeStyle: {
     position: 'absolute',
@@ -39,6 +40,7 @@ const styles = {
     height: '20px',
     background: '#53D838',
     borderRadius: '10px',
+    zIndex: 10,
   },
 }
 
