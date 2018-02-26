@@ -471,7 +471,13 @@ def api(function):
                 'name': user.name,
                 'username': user.username,
                 'id': str(user.id),
-                'consume': []
+                'consume': [],
+                'achievements': [{
+                    'key': a.key,
+                    'date': a.date,
+                    }
+                    for a in user.achievements
+                    if a.date > pendulum.today()]
             }
             for consume in Consumption.objects(user=user, date__gte=today):
                 if consume.price_per_unit in prices:

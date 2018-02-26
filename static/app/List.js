@@ -23,19 +23,6 @@ export default class List extends Component {
     this.url = window.location.origin + window.location.pathname;
   }
 
-  addConsumption(db_entry){
-    console.log(db_entry);
-    $.post({
-      url: this.url + 'api/add_consumption/',
-      data: JSON.stringify(db_entry),
-      success: data => this.setState(data),
-      contentType: 'application/json; charset=utf-8',
-      dataType: 'json',
-    }).fail(error => {
-      console.log('error', error);
-    });
-  }
-
   componentDidMount(){
     $.getJSON(this.url + 'api/user_list/', data => this.setState(data));
   }
@@ -50,6 +37,10 @@ export default class List extends Component {
     }).fail(error => {
       console.log('Error while finishing service.', error);
     });
+  }
+
+  updateAppState(data){
+    this.setState(data);
   }
 
   render(){
@@ -75,15 +66,19 @@ export default class List extends Component {
         consume={user.consume}
         service={user.id === this.state.service.uid ? this.state.service : undefined}
         style={{background: background, padding: "4px"}}
-        modifyDatabase={db_entry => this.addConsumption(db_entry)}
+        updateAppState={data => this.updateAppState(data)}
         sendService={service => this.sendService(service)}
       />
     })
     if(guestUser){
-      rows.push(<Row products={this.state.products} name={guestUser.name}
-                  key={rows.length} userId={guestUser.id} consume={guestUser.consume}
-                  style={{background: background, padding: "4px"}}
-                  modifyDatabase={(db_entry) => this.addConsumption(db_entry)}
+      rows.push(<Row
+        products={this.state.products}
+        name={guestUser.name}
+        key={rows.length}
+        userId={guestUser.id}
+        consume={guestUser.consume}
+        style={{background: background, padding: "4px"}}
+        updateAppState={this.updateAppState}
         />)
     }
     let alert = '';

@@ -16,8 +16,13 @@ export default class Row extends Component {
   render(){
     const buttons = Object.keys(this.props.products).map((name, i) => {
       const product = this.props.products[name];
-      const addButton = <AddButton product={product} key={product.name} name={this.props.name}
-                         modifyDatabase={(cur_consumption) => this.modifyDatabase(cur_consumption)}/>
+      const addButton = (<AddButton
+        product={product}
+        key={product.name}
+        name={this.props.name}
+        userId={this.props.userId}
+        updateAppState={this.props.updateAppState}
+        />);
       return addButton;
       });
     const mugs = this.props.consume ?
