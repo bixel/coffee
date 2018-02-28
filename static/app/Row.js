@@ -34,11 +34,11 @@ export default class Row extends Component {
     const service = this.props.service ? <ServiceButton service={this.props.service} sendService={s => this.props.sendService(s)} /> : '';
     const achievements = this.props.achievements.map((a, i) => <Achievement type={a.key} key={i} />);
     return <div className="row" style={this.props.style}>
-      <div className={this.props.service ? "col" : "col"} style={{marginTop: '6px', fontSize: '24px'}}>
+      <div className="col" style={{marginTop: '6px', fontSize: '24px'}}>
         {this.props.name} {achievements}<br />
         {mugs}
       </div>
-      <div className={this.props.service ? "col" : "col"}>
+      <div className={this.props.service ? "col-7" : "col"}>
         <div className="btn-toolbar" role="toolbar" style={{float: "right"}}>
           {service}{buttons}
         </div>

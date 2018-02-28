@@ -36,7 +36,7 @@
   Plotly.d3.json(window.location.origin + window.location.pathname + 'global_api/global_data/', function(err, response){
     var data = response.data;
     var trace = {
-      y: data.map(x => x.amount / 100),
+      y: data.map((a, i) => (a.amount + data.slice(0, i).map(a => a.amount).reduce((a, b) => a + b, 0)) / 100),
       x: data.map(x => x.date),
       type: 'date',
     };

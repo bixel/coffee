@@ -100,7 +100,7 @@ export default class List extends Component {
       console.log(response);
       var data = response.data;
       var trace = {
-        y: data.map(x => x.amount / 100),
+        y: data.map((a, i) => (a.amount + data.slice(0, i).map(a => a.amount).reduce((a, b) => a + b, 0)) / 100),
         x: data.map(x => x.date),
         type: 'date',
       };
