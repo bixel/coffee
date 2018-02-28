@@ -19,7 +19,7 @@ export default class ServiceButton extends Component {
   }
 
   render(){
-    return <div className="btn-group" role="group">
+    return <div className="btn-group mr-2" role="group">
       <button id="btnGroupDrop1" type="button"
         className="btn btn-secondary" style={styles.button}
         data-toggle="dropdown">

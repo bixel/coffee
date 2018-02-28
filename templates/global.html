@@ -1,7 +1,7 @@
 {% extends "site.html" %}
 {% block content %}
 <div class="row">
-  <div class="col-xs-12">
+  <div class="col">
     <h1>State of the Coffee</h1>
     <table class="table">
       <tbody>
@@ -24,8 +24,8 @@
         {% endfor %}
       </tbody>
     </table>
-    <div id="global-graph" style="height: 100%; width: 100%;" class="plotly-graph-div"></div>
-    <div id="coffee-hours" style="height: 100%; width: 100%;" class="plotly-graph-div"></div>
+    <div id="global-graph" style="height: 480px; width: 100%;" class="plotly-graph-div"></div>
+    <div id="coffee-hours" style="height: 480px; width: 100%;" class="plotly-graph-div"></div>
   </div>
 </div>
 

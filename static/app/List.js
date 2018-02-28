@@ -24,7 +24,7 @@ export default class List extends Component {
   }
 
   componentDidMount(){
-    $.get(this.url + 'api/user_list/', data => this.setState(data));
+    $.get(this.url + 'api/user_list/', data => this.updateAppState(data));
   }
 
   /* @TODO this should be moved into the service button */
@@ -44,6 +44,77 @@ export default class List extends Component {
    */
   updateAppState(data){
     this.setState(data);
+
+    // WARNING: This code is duplicated from the "global.html" template
+    Plotly.d3.json(window.location.origin + '/global_api/consumption_times/', function(err, response){
+      var trace_last_four_weeks = {
+        type: "histogram",
+        x: response.last_four_weeks,
+        histnorm: 'probability',
+        name: 'Letzte vier Wochen',
+        opacity: 0.8,
+        xbins: {
+          start: 6 * 3600,
+          end: 20 * 3600,
+          size: 1800,
+        },
+      };
+      var trace_last_week = {
+        type: "histogram",
+        histnorm: 'probability',
+        x: response.last_week,
+        name: 'Letzte Woche',
+        opacity: 0.4,
+        xbins: {
+          start: 6 * 3600,
+          end: 20 * 3600,
+          size: 1800,
+        },
+      };
+      var ticktext = [6, 8, 10, 12, 14, 16, 18, 20]
+      var tickvals = ticktext.map(x => x * 3600);
+      var layout = {
+        title: 'Beliebte Zeiten',
+        xaxis: {
+          autorange: false,
+          range: [6 * 3600, 20 * 3600],
+          tickvals: tickvals,
+          ticktext: ticktext,
+          title: 'Tageszeit / Stunden',
+        },
+        yaxis: {
+          title: 'Kaffee-Dichte / 30 Minuten',
+        },
+        barmode: 'overlay',
+        showlegend: true,
+        legend: {
+          x: 0,
+          y: 1.1
+        },
+      };
+      Plotly.newPlot("coffee-hours", [trace_last_four_weeks, trace_last_week], layout, {displayModeBar: false});
+    });
+
+    // WARNING: This code is duplicated from the "global.html" template
+    Plotly.d3.json(window.location.origin + '/global_api/global_data/', function(err, response){
+      console.log(response);
+      var data = response.data;
+      var trace = {
+        y: data.map(x => x.amount / 100),
+        x: data.map(x => x.date),
+        type: 'date',
+      };
+      var layout = {
+        title: 'Kaffeekasse',
+        xaxis: {
+          title: 'Datum',
+        },
+        yaxis: {
+          title: 'Kassenstand / €',
+        },
+      };
+      Plotly.newPlot('global-graph', [trace], layout, {displayModeBar: false});
+    });
   }
 
   render(){
@@ -91,7 +162,7 @@ export default class List extends Component {
       alert = <Alert type={this.state.alert.type}>{this.state.alert.text}</Alert>;
       setTimeout(() => this.setState({ alert: undefined, }), 5000);
     };
-    return <div className="container">
+    return <div className="container" style={{margin: 0, maxWidth: "100%"}}>
       <div className="row"><div className="col-xs-12">
         <h1>Kaffeeliste</h1>
       </div></div>

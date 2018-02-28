@@ -39,7 +39,7 @@ export default class Row extends Component {
         {mugs}
       </div>
       <div className={this.props.service ? "col" : "col"}>
-        <div className="btn-toolbar" style={{float: "right"}}>
+        <div className="btn-toolbar" role="toolbar" style={{float: "right"}}>
           {service}{buttons}
         </div>
       </div>

@@ -119,7 +119,7 @@ export default class AddButton extends Component {
       null :
       <button
         type="button"
-        className="btn btn-secondary"
+        className="btn btn-light"
         style={styles.undoButton}
         onClick={() => this.modifyConsumption(-1)}>
           {undoButtonText}<Badge style={styles.cancelBadgeStyle}>{this.state.cur_undo_time}</Badge>
@@ -139,7 +139,7 @@ export default class AddButton extends Component {
         </button>;
 
     return (
-        <div className="btn-group">
+        <div className="btn-group mr-2" role="group">
             {addButton}{undoButton}
         </div>
     )

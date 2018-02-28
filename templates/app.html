@@ -2,13 +2,17 @@
 
 {% block body %}
 <div id="main"></div>
-<div id="carouselExampleIndicators" class="carousel slide" data-ride="carousel">
+<div id="carouselExampleIndicators" class="carousel slide" data-ride="false">
   <ol class="carousel-indicators">
     <li data-target="#carouselExampleIndicators" data-slide-to="0" class="active"></li>
+    <li data-target="#carouselExampleIndicators" data-slide-to="1"></li>
   </ol>
   <div class="carousel-inner">
     <div class="carousel-item active">
-      <div id="coffee-hours" style="margin-left: 10%; width: 80%; margin-bottom: 30px; height: 480px;" class="plotly-graph-div col-xs-8"></div>
+      <div id="coffee-hours" style="margin-left: 50px; width: 500px; margin-bottom: 30px; height: 440px;" class="plotly-graph-div col-xs-8"></div>
+    </div>
+    <div class="carousel-item">
+      <div id="global-graph" style="margin-left: 50px; margin-bottom: 30px; height: 440px; width: 500px;" class="plotly-graph-div col-xs-8"></div>
     </div>
   </div>
   <a class="carousel-control-prev" href="#carouselExampleIndicators" role="button" data-slide="prev" style="color: #bbb">
@@ -25,49 +29,4 @@
 {% block scripts %}
 {{ super() }}
 <script src="{{ code_url }}"></script>
-<script type="text/javascript">
-  Plotly.d3.json('{{ url_for('coffee.global_api', function='consumption_times') }}', function(err, response){
-    var trace_last_four_weeks = {
-      type: "histogram",
-      x: response.last_four_weeks,
-      histnorm: 'probability',
-      name: 'Letzte vier Wochen',
-      opacity: 0.8,
-      xbins: {
-        start: 6 * 3600,
-        end: 20 * 3600,
-        size: 1800,
-      },
-    };
-    var trace_last_week = {
-      type: "histogram",
-      histnorm: 'probability',
-      x: response.last_week,
-      name: 'Letzte Woche',
-      opacity: 0.4,
-      xbins: {
-        start: 6 * 3600,
-        end: 20 * 3600,
-        size: 1800,
-      },
-    };
-    var ticktext = [6, 8, 10, 12, 14, 16, 18, 20]
-    var tickvals = ticktext.map(x => x * 3600);
-    var layout = {
-      title: 'Beliebte Zeiten',
-      xaxis: {
-        autorange: false,
-        range: [6 * 3600, 20 * 3600],
-        tickvals: tickvals,
-        ticktext: ticktext,
-        title: 'Tageszeit / Stunden',
-      },
-      yaxis: {
-        title: 'Kaffee-Dichte / 30 Minuten',
-      },
-      barmode: 'overlay',
-    };
-    Plotly.newPlot("coffee-hours", [trace_last_four_weeks, trace_last_week], layout, {displayModeBar: false});
-  });
-</script>
 {% endblock %}

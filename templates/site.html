@@ -1,44 +1,45 @@
 {% extends "default.html" %}
 {% block body %}
-<nav class="navbar navbar-light bg-faded">
-  <div class="container">
-    <button class="navbar-toggler hidden-lg-up" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation"></button>
-    <div class="collapse navbar-toggleable-md" id="navbarResponsive">
-      <a class="navbar-brand" href="{{ url_for('coffee.index') }}">
-        E5 Ministry of Coffee Affairs
-      </a>
-      <ul class="nav navbar-nav">
-        {%- for endpoint, caption in [
-          ('coffee.index', 'Global'),
-          ('coffee.personal', 'Personal'),
-          ('coffee.admin', 'Admin'),
-        ] %}
-          <li class="nav-item{% if endpoint == request.endpoint %} active{% endif
-          %}"><a class="nav-link" href={{ url_for(endpoint) }}>{{ caption }}</a>
-        {%- endfor %}
-        {% block admin_navbar %}
-        <li class="nav-item dropdown">
-          <a href="#"
-               class="dropdown-toggle nav-link"
-               data-toggle="dropdown"
-               role="button"
-               aria-haspopup="true"
-               aria-expanded="false"><span class="caret"></span> Database
-          </a>
-          <ul class="dropdown-menu">
-            <li class="dropdown-item"><a href="{{ url_for('user.index_view') }}">User</a>
-            <li class="dropdown-item"><a href="{{ url_for('transaction.index_view') }}">Transaction</a>
-            <li class="dropdown-item"><a href="{{ url_for('service.index_view') }}">Service</a>
-            <li class="dropdown-item"><a href="{{ url_for('consumption.index_view') }}">Consumption</a>
-            <li class="dropdown-item"><a href="{{ url_for('achievementdescriptions.index_view') }}">Achievments</a>
-          </ul>
-        </li>
-        {% endblock %}
-        <li class="nav-item float-xs-right">
-          <a href="{{ url_for('coffee.logout') }}" class="btn btn-default navbar-btn">Logout</a>
-        </li>
-      </ul>
-    </div>
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <a class="navbar-brand" href="{{ url_for('coffee.index') }}">
+    E5 Ministry of Coffee Affairs
+  </a>
+  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+
+  <div class="collapse navbar-collapse" id="navbarSupportedContent">
+    <ul class="navbar-nav mr-auto">
+      {%- for endpoint, caption in [
+        ('coffee.index', 'Global'),
+        ('coffee.personal', 'Personal'),
+        ('coffee.admin', 'Admin'),
+      ] %}
+        <li class="nav-item{% if endpoint == request.endpoint %} active{% endif
+        %}"><a class="nav-link" href={{ url_for(endpoint) }}>{{ caption }}</a>
+      {%- endfor %}
+      {% block admin_navbar %}
+      <li class="nav-item dropdown">
+        <a href="#"
+             class="dropdown-toggle nav-link"
+             data-toggle="dropdown"
+             role="button"
+             aria-haspopup="true"
+             aria-expanded="false"><span class="caret"></span> Database
+        </a>
+        <ul class="dropdown-menu">
+          <li class="dropdown-item"><a href="{{ url_for('user.index_view') }}">User</a>
+          <li class="dropdown-item"><a href="{{ url_for('transaction.index_view') }}">Transaction</a>
+          <li class="dropdown-item"><a href="{{ url_for('service.index_view') }}">Service</a>
+          <li class="dropdown-item"><a href="{{ url_for('consumption.index_view') }}">Consumption</a>
+          <li class="dropdown-item"><a href="{{ url_for('achievementdescriptions.index_view') }}">Achievments</a>
+        </ul>
+      </li>
+      {% endblock %}
+      <li class="nav-item">
+        <a href="{{ url_for('coffee.logout') }}" class="btn btn-default navbar-btn">Logout</a>
+      </li>
+    </ul>
   </div>
 </nav>
 
@@ -47,7 +48,7 @@
   {% if messages %}
     {% for message in messages %}
       <div class="row">
-        <div class="col-md-12 alert alert-warning" role="alert">
+        <div class="col alert alert-warning" role="alert">
           {{ message }}
         </div>
       </div>
