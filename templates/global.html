@@ -53,11 +53,24 @@
   });
 
   Plotly.d3.json(window.location.origin + window.location.pathname + 'global_api/consumption_times/', function(err, response){
-    var data = response.data;
-    var trace = {
+    var trace_last_four_weeks = {
       type: "histogram",
-      x: data,
-      name: 'Beliebte Zeiten',
+      x: response.last_four_weeks,
+      histnorm: 'probability',
+      name: 'Letzte vier Wochen',
+      opacity: 0.8,
+      xbins: {
+        start: 6 * 3600,
+        end: 20 * 3600,
+        size: 1800,
+      },
+    };
+    var trace_last_week = {
+      type: "histogram",
+      histnorm: 'probability',
+      x: response.last_week,
+      name: 'Letzte Woche',
+      opacity: 0.4,
       xbins: {
         start: 6 * 3600,
         end: 20 * 3600,
@@ -76,10 +89,11 @@
         title: 'Tageszeit / Stunden',
       },
       yaxis: {
-        title: '#Kaffee / 30 Minuten',
+        title: 'Kaffee-Dichte / 30 Minuten',
       },
+      barmode: 'overlay',
     };
-    Plotly.newPlot("coffee-hours", [trace], layout, {displayModeBar: false});
+    Plotly.newPlot("coffee-hours", [trace_last_four_weeks, trace_last_week], layout, {displayModeBar: false});
   });
 </script>
 {% endblock %}

@@ -244,10 +244,17 @@ def global_api(function):
         return jsonify(data=li)
 
     if function == 'consumption_times':
-        consumptions = Consumption.objects(date__gte=pendulum.now().subtract(days=7))
-        consumptions = [pendulum.instance(c.date) for c in consumptions]
-        print(consumptions)
-        return jsonify(data=[c.subtract(years=c.year-1970, months=c.month-1, days=c.day-1).timestamp() for c in consumptions])
+        """ return a list of consumtion daytimes, in seconds """
+        def getSecondsOfDay(dates):
+            for d in dates:
+                yield d.subtract(years=d.year-1970, months=d.month-1,
+                                 days=d.day-1).timestamp()
+
+        consumptions = Consumption.objects(date__gte=pendulum.now().subtract(days=28))
+        consumptions4Weeks = [pendulum.instance(c.date) for c in consumptions]
+        consumptions1Week = [c for c in consumptions4Weeks if pendulum.now().subtract(days=7) < c]
+        return jsonify(last_four_weeks=list(getSecondsOfDay(consumptions4Weeks)),
+                       last_week=list(getSecondsOfDay(consumptions1Week)))
 
     return abort(404)
 
