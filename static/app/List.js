@@ -24,7 +24,7 @@ export default class List extends Component {
   }
 
   componentDidMount(){
-    $.getJSON(this.url + 'api/user_list/', data => this.setState(data));
+    $.get(this.url + 'api/user_list/', data => this.setState(data));
   }
 
   /* @TODO this should be moved into the service button */
@@ -91,7 +91,7 @@ export default class List extends Component {
       alert = <Alert type={this.state.alert.type}>{this.state.alert.text}</Alert>;
       setTimeout(() => this.setState({ alert: undefined, }), 5000);
     };
-    return <div className="container" style={{margin: "0px", width: "100%"}}>
+    return <div className="container">
       <div className="row"><div className="col-xs-12">
         <h1>Kaffeeliste</h1>
       </div></div>
