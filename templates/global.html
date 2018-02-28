@@ -34,7 +34,6 @@
 {% block scripts %}
 <script type="text/javascript">
   Plotly.d3.json(window.location.origin + window.location.pathname + 'global_api/global_data/', function(err, response){
-    console.log(response);
     var data = response.data;
     var trace = {
       y: data.map(x => x.amount / 100),
@@ -55,7 +54,6 @@
 
   Plotly.d3.json(window.location.origin + window.location.pathname + 'global_api/consumption_times/', function(err, response){
     var data = response.data;
-    console.log(data);
     var trace = {
       type: "histogram",
       x: data,
@@ -68,7 +66,6 @@
     };
     var ticktext = [6, 8, 10, 12, 14, 16, 18, 20]
     var tickvals = ticktext.map(x => x * 3600);
-    console.log(tickvals);
     var layout = {
       title: 'Beliebte Zeiten',
       xaxis: {
