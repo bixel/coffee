@@ -231,19 +231,25 @@ def personal():
                            balance_type=balance_type)
 
 
-@bp.route('/personal_data.json')
+@bp.route('/global_api/<function>/', methods=['GET'])
 @login_required
-def personal_data():
-    user = User.objects.get(username=current_user.username)
-    return jsonify(data=user.consumption_list())
+def global_api(function):
+    if function == 'personal_data':
+        user = User.objects.get(username=current_user.username)
+        return jsonify(data=user.consumption_list())
 
+    if function == 'global_data':
+        li = [dict(date=str(t.date.date()), amount=t.diff)
+              for t in Transaction.objects.only('date', 'diff').order_by('date')]
+        return jsonify(data=li)
 
-@bp.route('/global_data.json')
-@login_required
-def global_data():
-    li = [dict(date=str(t.date.date()), amount=t.diff)
-          for t in Transaction.objects.only('date', 'diff').order_by('date')]
-    return jsonify(data=li)
+    if function == 'consumption_times':
+        consumptions = Consumption.objects(date__gte=pendulum.now().subtract(days=7))
+        consumptions = [pendulum.instance(c.date) for c in consumptions]
+        print(consumptions)
+        return jsonify(data=[c.subtract(years=c.year-1970, months=c.month-1, days=c.day-1).timestamp() for c in consumptions])
+
+    return abort(404)
 
 
 def switch_to_user(username):

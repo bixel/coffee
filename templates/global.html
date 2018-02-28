@@ -24,11 +24,65 @@
         {% endfor %}
       </tbody>
     </table>
-    <div id='global_graph'></div>
-    <script>
-      draw_graph('{{ url_for('coffee.global_data') }}', '#global_graph', 680, 400)
-    </script>
+    <div id="global-graph" style="height: 100%; width: 100%;" class="plotly-graph-div"></div>
+    <div id="coffee-hours" style="height: 100%; width: 100%;" class="plotly-graph-div"></div>
   </div>
 </div>
 
+{% endblock %}
+
+{% block scripts %}
+<script type="text/javascript">
+  Plotly.d3.json(window.location.origin + window.location.pathname + 'global_api/global_data/', function(err, response){
+    console.log(response);
+    var data = response.data;
+    var trace = {
+      y: data.map(x => x.amount / 100),
+      x: data.map(x => x.date),
+      type: 'date',
+    };
+    var layout = {
+      title: 'Kaffeekasse',
+      xaxis: {
+        title: 'Datum',
+      },
+      yaxis: {
+        title: 'Kassenstand / €',
+      },
+    };
+    Plotly.newPlot('global-graph', [trace], layout, {displayModeBar: false});
+  });
+
+  Plotly.d3.json(window.location.origin + window.location.pathname + 'global_api/consumption_times/', function(err, response){
+    var data = response.data;
+    console.log(data);
+    var trace = {
+      type: "histogram",
+      x: data,
+      name: 'Beliebte Zeiten',
+      xbins: {
+        start: 6 * 3600,
+        end: 20 * 3600,
+        size: 1800,
+      },
+    };
+    var ticktext = [6, 8, 10, 12, 14, 16, 18, 20]
+    var tickvals = ticktext.map(x => x * 3600);
+    console.log(tickvals);
+    var layout = {
+      title: 'Beliebte Zeiten',
+      xaxis: {
+        autorange: false,
+        range: [6 * 3600, 20 * 3600],
+        tickvals: tickvals,
+        ticktext: ticktext,
+        title: 'Tageszeit / Stunden',
+      },
+      yaxis: {
+        title: '#Kaffee / 30 Minuten',
+      },
+    };
+    Plotly.newPlot("coffee-hours", [trace], layout, {displayModeBar: false});
+  });
+</script>
 {% endblock %}

@@ -1,4 +1,5 @@
 function draw_table(file, columns, id) {
+    var d3 = Plotly.d3;
     d3.json(file, function(error, raw_json) {
         var data = raw_json.data.reverse();
         var table = d3.select(id).append("table").attr("class", "table table-striped"),
@@ -52,6 +53,7 @@ function draw_table(file, columns, id) {
 }
 
 function draw_graph(file, id, w, h) {
+    var d3 = Plotly.d3;
     var margin = {top: 20, right: 20, bottom: 70, left: 50},
         width = w - margin.left - margin.right,
         height = h - margin.top - margin.bottom;

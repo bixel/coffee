@@ -15,18 +15,37 @@
     </tr>
     </table>
     <div id="personal_graph"></div>
-    <script>
-      draw_graph('{{ url_for('coffee.personal_data') }}', '#personal_graph', 400, 400)
-    </script>
   </div>
   <div class="col-sm-4">
     <h2>Transactions</h2>
     <div id="personal_table"></div>
-    <script>
-      draw_table('{{ url_for('coffee.personal_data') }}', ['date', 'amount'], '#personal_table')
-    </script>
   </div>
 </div>
-
-
 {% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('coffee.static', filename='site.js') }}"></script>
+<script>
+  Plotly.d3.json('{{ url_for('coffee.global_api', function='personal_data') }}', function(err, response){
+    var data = response.data;
+    var trace = {
+      y: data.map(x => x.amount / 100),
+      x: data.map(x => x.date),
+      type: 'date',
+    };
+    var layout = {
+      title: 'Persönliches Guthaben',
+      xaxis: {
+        title: 'Datum',
+      },
+      yaxis: {
+        title: 'Guthaben / €',
+      },
+    };
+    Plotly.newPlot('personal_graph', [trace], layout, {displayModeBar: false});
+  });
+
+  draw_table('{{ url_for('coffee.global_api', function='personal_data') }}', ['date', 'amount'], '#personal_table')
+</script>
+{% endblock %}
+
