@@ -66,6 +66,27 @@ class Transaction(AchievementDocument):
     def __str__(self):
         return self.description
 
+    def dailyTransactions():
+        groupStage = {
+                '$group': {
+                    '_id': {
+                        '$dateToString': {
+                            'format': '%Y-%m-%d',
+                            'date': '$date',
+                            }
+                        },
+                    'total': {
+                        '$sum': '$diff',
+                        },
+                    }
+                }
+        sortStage = {
+                '$sort': {
+                    '_id': 1,
+                    },
+                }
+        return Transaction.objects.aggregate(groupStage, sortStage)
+
 
 class Consumption(AchievementDocument):
     date = DateTimeField(default=pendulum.now)
@@ -79,6 +100,29 @@ class Consumption(AchievementDocument):
             self.units,
             self.price_per_unit,
         )
+
+    def dailyConsumptions():
+        groupStage = {
+                '$group': {
+                    '_id': {
+                        '$dateToString': {
+                            'format': '%Y-%m-%d',
+                            'date': '$date'
+                            },
+                        },
+                    'total': {
+                        '$sum': {
+                            '$multiply': ['$units', '$price_per_unit'],
+                            }
+                        }
+                    }
+                }
+        sortStage = {
+                '$sort': {
+                    '_id': 1
+                    }
+                }
+        return Consumption.objects.aggregate(groupStage, sortStage)
 
 
 class Service(AchievementDocument):

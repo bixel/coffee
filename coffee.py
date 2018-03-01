@@ -239,9 +239,22 @@ def global_api(function):
         return jsonify(data=user.consumption_list())
 
     if function == 'global_data':
-        li = [dict(date=str(t.date.date()), amount=t.diff)
-              for t in Transaction.objects.only('date', 'diff').order_by('date')]
-        return jsonify(data=li)
+        # some renaming
+        actual_curve = [
+                dict(date=t['_id'], amount=t['total'])
+                for t in Transaction.dailyTransactions()
+                ]
+        consumption_curve = list(Consumption.dailyConsumptions())
+        # get all unique dates
+        unique_dates = set([t['date'] for t in actual_curve]).union(
+                set([t['_id'] for t in consumption_curve ]))
+        target_curve = []
+        for date in unique_dates:
+            amount = (next((x['amount'] for x in actual_curve if x['date'] == date), 0)
+                      + next((x['total'] for x in consumption_curve if x['_id'] == date), 0))
+            target_curve.append(dict(date=date, amount=amount))
+        target_curve = sorted(target_curve, key=lambda x: x['date'])
+        return jsonify(actual_curve=actual_curve, target_curve=target_curve)
 
     if function == 'consumption_times':
         """ return a list of consumtion daytimes, in seconds """
@@ -358,7 +371,10 @@ def submit_payment():
         return redirect(url_for('coffee.admin'))
 
     uid = pform.uid.data
-    amount = float(pform.amount.data) * 100
+    # prevent inaccurate input parsing (see
+    # https://docs.python.org/3.6/tutorial/floatingpoint.html)
+    amount = int(round(float(pform.amount.data) * 100))
+    print('Payment input:', pform.amount.data, amount)
     user = User.objects.get(id=uid)
     transaction = Transaction(user=user, diff=amount,
                               description='{} payment from {}'
@@ -557,11 +573,13 @@ def administrate_expenses():
         return redirect(url_for('coffee.admin'))
 
     description = eform.description.data
-    amount = eform.amount.data
+    # prevent inaccurate input parsing (see
+    # https://docs.python.org/3.6/tutorial/floatingpoint.html)
+    amount = int(round(float(eform.amount.data * 100)))
     date = (eform.date.data
             if eform.date.data != ''
             else datetime.utcnow())
-    t = Transaction(diff=100 * amount, date=date, description=description)
+    t = Transaction(diff=amount, date=date, description=description)
     t.save()
     flash('Transaction stored.')
     return redirect(url_for('coffee.admin'))

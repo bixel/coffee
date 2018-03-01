@@ -2,6 +2,7 @@ import React, {Component} from 'react';
 import Row from './Row.js';
 import AddButton from './AddButton.js';
 import Alert from './Alert.js';
+import {plotCoffeeCurve, plotPopularTimes} from '../plots.js';
 
 export default class List extends Component {
   constructor(props, context){
@@ -47,73 +48,20 @@ export default class List extends Component {
 
     // WARNING: This code is duplicated from the "global.html" template
     Plotly.d3.json(window.location.origin + '/global_api/consumption_times/', function(err, response){
-      var trace_last_four_weeks = {
-        type: "histogram",
-        x: response.last_four_weeks,
-        histnorm: 'probability',
-        name: 'Letzte vier Wochen',
-        opacity: 0.8,
-        xbins: {
-          start: 6 * 3600,
-          end: 20 * 3600,
-          size: 1800,
-        },
-      };
-      var trace_last_week = {
-        type: "histogram",
-        histnorm: 'probability',
-        x: response.last_week,
-        name: 'Letzte Woche',
-        opacity: 0.4,
-        xbins: {
-          start: 6 * 3600,
-          end: 20 * 3600,
-          size: 1800,
-        },
-      };
-      var ticktext = [6, 8, 10, 12, 14, 16, 18, 20]
-      var tickvals = ticktext.map(x => x * 3600);
-      var layout = {
-        title: 'Beliebte Zeiten',
-        xaxis: {
-          autorange: false,
-          range: [6 * 3600, 20 * 3600],
-          tickvals: tickvals,
-          ticktext: ticktext,
-          title: 'Tageszeit / Stunden',
-        },
-        yaxis: {
-          title: 'Kaffee-Dichte / 30 Minuten',
-        },
-        barmode: 'overlay',
-        showlegend: true,
-        legend: {
-          x: 0,
-          y: 1.1
-        },
-      };
-      Plotly.newPlot("coffee-hours", [trace_last_four_weeks, trace_last_week], layout, {displayModeBar: false});
+      var {
+        traces,
+        layout
+      } = plotPopularTimes(response);
+      Plotly.newPlot("coffee-hours", traces, layout, {displayModeBar: false});
     });
 
     // WARNING: This code is duplicated from the "global.html" template
     Plotly.d3.json(window.location.origin + '/global_api/global_data/', function(err, response){
-      console.log(response);
-      var data = response.data;
-      var trace = {
-        y: data.map((a, i) => (a.amount + data.slice(0, i).map(a => a.amount).reduce((a, b) => a + b, 0)) / 100),
-        x: data.map(x => x.date),
-        type: 'date',
-      };
-      var layout = {
-        title: 'Kaffeekasse',
-        xaxis: {
-          title: 'Datum',
-        },
-        yaxis: {
-          title: 'Kassenstand / €',
-        },
-      };
-      Plotly.newPlot('global-graph', [trace], layout, {displayModeBar: false});
+      var {
+        traces,
+        layout,
+      } = plotCoffeeCurve(response);
+      Plotly.newPlot('global-graph', traces, layout, {displayModeBar: false});
     });
   }
 
