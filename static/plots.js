@@ -82,5 +82,10 @@ function plotPopularTimes(response){
   };
 }
 
-module.exports.plotCoffeeCurve = plotCoffeeCurve;
-module.exports.plotPopularTimes = plotPopularTimes;
+// check if this is build with webpack...
+try {
+  module.exports.plotCoffeeCurve = plotCoffeeCurve;
+  module.exports.plotPopularTimes = plotPopularTimes;
+} catch (exeption) {
+  // I'll just ignore this... This file is also used in non-webpack manner
+}
