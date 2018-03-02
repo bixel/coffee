@@ -85,6 +85,12 @@ class UserView(AuthenticatedModelView):
         }
 
 
+class ConsumptionView(AuthenticatedModelView):
+    page_size = 1000
+    column_default_sort = 'date'
+    column_list = ['date', 'user', 'units', 'price_per_unit']
+
+
 class ServiceView(AuthenticatedModelView):
     column_editable_list = ['service_count', 'date', 'user']
 
@@ -94,7 +100,7 @@ admin = Admin(app, name='E5 MoCA DB ADMIN', template_mode='bootstrap3',
 admin.add_view(UserView(User))
 admin.add_view(AuthenticatedModelView(Transaction))
 admin.add_view(ServiceView(Service))
-admin.add_view(AuthenticatedModelView(Consumption))
+admin.add_view(ConsumptionView(Consumption))
 admin.add_view(AuthenticatedModelView(AchievementDescriptions))
 
 
@@ -244,13 +250,15 @@ def global_api(function):
                 dict(date=t['_id'], amount=t['total'])
                 for t in Transaction.dailyTransactions()
                 ]
-        consumption_curve = list(Consumption.dailyConsumptions())
+        consumption_curve = Consumption.dailyConsumptions()
+
+        expense_curve = Transaction.dailyExpenses()
         # get all unique dates
-        unique_dates = set([t['date'] for t in actual_curve]).union(
+        unique_dates = set([t['_id'] for t in expense_curve]).union(
                 set([t['_id'] for t in consumption_curve ]))
         target_curve = []
         for date in unique_dates:
-            amount = (next((x['amount'] for x in actual_curve if x['date'] == date), 0)
+            amount = (next((x['total'] for x in expense_curve if x['_id'] == date), 0)
                       + next((x['total'] for x in consumption_curve if x['_id'] == date), 0))
             target_curve.append(dict(date=date, amount=amount))
         target_curve = sorted(target_curve, key=lambda x: x['date'])

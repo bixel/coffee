@@ -66,7 +66,8 @@ class Transaction(AchievementDocument):
     def __str__(self):
         return self.description
 
-    def dailyTransactions():
+    @staticmethod
+    def aggregateDaily(objectSelector):
         groupStage = {
                 '$group': {
                     '_id': {
@@ -85,7 +86,16 @@ class Transaction(AchievementDocument):
                     '_id': 1,
                     },
                 }
-        return Transaction.objects.aggregate(groupStage, sortStage)
+        return objectSelector.aggregate(groupStage, sortStage)
+
+    @staticmethod
+    def dailyTransactions():
+        return list(Transaction.aggregateDaily(Transaction.objects))
+
+    @staticmethod
+    def dailyExpenses():
+        return list(Transaction.aggregateDaily(Transaction.objects(user=None)))
+
 
 
 class Consumption(AchievementDocument):
@@ -101,6 +111,7 @@ class Consumption(AchievementDocument):
             self.price_per_unit,
         )
 
+    @staticmethod
     def dailyConsumptions():
         groupStage = {
                 '$group': {
@@ -122,7 +133,7 @@ class Consumption(AchievementDocument):
                     '_id': 1
                     }
                 }
-        return Consumption.objects.aggregate(groupStage, sortStage)
+        return list(Consumption.objects.aggregate(groupStage, sortStage))
 
 
 class Service(AchievementDocument):
