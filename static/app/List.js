@@ -3,6 +3,7 @@ import Row from './Row.js';
 import AddButton from './AddButton.js';
 import Alert from './Alert.js';
 import {plotCoffeeCurve, plotPopularTimes} from '../plots.js';
+import Carousel from './Carousel.js';
 
 export default class List extends Component {
   constructor(props, context){
@@ -86,11 +87,9 @@ export default class List extends Component {
         key={i}
         userId={user.id}
         consume={user.consume}
-        service={user.id === this.state.service.uid ? this.state.service : undefined}
         achievements={user.achievements}
         style={{background: background, padding: "4px"}}
         updateAppState={data => this.updateAppState(data)}
-        sendService={service => this.sendService(service)}
       />
     })
     if(guestUser){
@@ -116,6 +115,7 @@ export default class List extends Component {
       </div></div>
       {rows}
       {alert}
+      <Carousel service={this.state.service}/>
     </div>
   }
 }
