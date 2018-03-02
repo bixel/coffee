@@ -197,11 +197,13 @@ class User(Document):
 
     def consumption_list(self):
         match = {'$match': {'user': self.id}}
-        # id will be an integer representing YYYYWW
-        group_id = {'$sum': [
-            {'$multiply': [100, {'$year': '$date'}]},
-            {'$week': '$date'}
-        ]}
+        # id will be an integer representing YYYYmmdd
+        group_id = {
+                '$dateToString': {
+                    'date': '$date',
+                    'format': '%Y%m%d',
+                    }
+                }
         consume_pipeline = [
             match,
             {
@@ -224,8 +226,9 @@ class User(Document):
         cs = list(Consumption.objects.aggregate(*consume_pipeline))
         ts = list(Transaction.objects.aggregate(*transaction_pipeline))
         sorted_result = sorted(cs + ts, key=lambda t: t['_id'])
+        print(sorted_result)
         return [{'amount': t['diff'],
-                 'date': pendulum.from_format('%d1' % t['_id'], '%Y%W%w').to_date_string()}
+                 'date': pendulum.from_format(t['_id'], '%Y%m%d').to_date_string()}
                  for t in sorted_result]
 
     def backref(self, field, Reference, default=0):
