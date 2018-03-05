@@ -8,7 +8,7 @@ let carouselDivStyle = {
 };
 
 export default function Carousel(props) {
-  var serviceUser = props.service.name;
+  var serviceUserName = props.service.name;
   return (
     <div id="carouselExampleIndicators" className="carousel slide" data-ride="false" data-pause="true">
       <ol className="carousel-indicators">
@@ -28,7 +28,38 @@ export default function Carousel(props) {
         </div>
         <div className="carousel-item">
           <div id="service-box" style={{ ...carouselDivStyle, paddingTop: "30px" }}>
-            <h3>Service: {serviceUser}</h3>
+            <h3>Service Aktuell: {serviceUserName}</h3>
+            <div className="row">
+              <div className="col">
+                Letzte Reinigung
+              </div>
+              <div className="col">
+                10.01.18 <i className="fas fa-check-circle"></i>
+              </div>
+            </div>
+            <div className="row">
+              <div className="col">
+                Reinigung eintragen
+              </div>
+              <div className="col">
+                <button role="button" className="btn btn-primary">Jetzt gereinigt</button>
+              </div>
+            </div>
+            <h3>Nächste Dienste</h3>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th scope="col">Name</th>
+                  <th scope="col">Datum</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td></td>
+                  <td></td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
