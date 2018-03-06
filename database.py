@@ -145,12 +145,46 @@ class Service(AchievementDocument):
     cleaning_program = BooleanField(default=False)
     decalcify_program = BooleanField(default=False)
 
+    @staticmethod
     def current():
         return (Service
                 .objects(date__lte=pendulum.now(TZ), master=True)
                 .order_by('-date')
                 .first()
                 )
+
+    @staticmethod
+    def upcoming():
+        return list(Service.objects.aggregate(
+            {
+                '$match': {
+                    'date': {
+                        '$gte': pendulum.now(TZ),
+                        },
+                    'master': {
+                        '$eq': True,
+                        },
+                    },
+                },
+            {
+                '$group': {
+                    '_id': {
+                        '$dateToString': {
+                            'date': '$date',
+                            'format': '%Y%V',
+                            }
+                        },
+                    'user': {
+                        '$first': '$user'
+                        }
+                    }
+                },
+            {
+                '$sort': {
+                    '_id': 1,
+                    },
+                }
+            ))
 
 
 class User(Document):

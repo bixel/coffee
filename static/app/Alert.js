@@ -14,7 +14,7 @@ const styles = {
     backgroud: "#C0C7BF",
   },
   text: {
-    fontSize: "120%",
+    fontSize: "240%",
   },
 }
 

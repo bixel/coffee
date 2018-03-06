@@ -4,6 +4,7 @@ import AddButton from './AddButton.js';
 import Alert from './Alert.js';
 import {plotCoffeeCurve, plotPopularTimes} from '../plots.js';
 import Carousel from './Carousel.js';
+import config from './config.js';
 
 export default class List extends Component {
   constructor(props, context){
@@ -26,15 +27,24 @@ export default class List extends Component {
   }
 
   componentDidMount(){
+    // get the initial app state immediately
     $.get(this.url + 'api/user_list/', data => this.updateAppState(data));
+
+    // ...and check for an update every 600s
+    this.updateInterval = window.setInterval(() => {
+      $.get(this.url + 'api/user_list/', data => this.updateAppState(data));
+    }, 600 * 1000);
   }
 
   /* @TODO this should be moved into the service button */
   sendService(service){
+    let _this = this;
     $.post({
-      url: this.url + 'api/finish_service/',
+      url: config.BASEURL + 'api/finish_service/',
       data: JSON.stringify({service: service}),
-      success: data => this.setState(data),
+      success: data => {
+        _this.updateAppState(data);
+      },
       contentType: 'application/json; charset=utf-8',
       dataType: 'json',
     }).fail(error => {
@@ -101,7 +111,7 @@ export default class List extends Component {
         consume={guestUser.consume}
         achievements={[]}
         style={{background: background, padding: "4px"}}
-        updateAppState={this.updateAppState}
+        updateAppState={data => this.updateAppState(data)}
         />)
     }
     let alert = '';
@@ -115,7 +125,12 @@ export default class List extends Component {
       </div></div>
       {rows}
       {alert}
-      <Carousel service={this.state.service}/>
+      <Carousel
+        service={this.state.service}
+        users={this.state.users}
+        updateAppState={data => this.updateAppState(data)}
+        sendService={this.sendService}
+        />
     </div>
   }
 }

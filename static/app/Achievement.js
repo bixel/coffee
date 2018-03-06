@@ -8,7 +8,6 @@ let achievementTypes = {
 };
 
 export default function Achievement(props) {
-  console.log(achievementTypes, props);
   let faProps = achievementTypes[props.type];
   return (
     <i className={faProps.className} style={faProps.style} />
