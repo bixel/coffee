@@ -1,6 +1,5 @@
 import React, {Component} from 'react';
 import AddButton from './AddButton.js';
-import ServiceButton from './ServiceButton.js';
 import { Icon } from './Icon.js';
 import Achievement from './Achievement.js';
 
@@ -31,7 +30,6 @@ export default class Row extends Component {
         <Icon key={i} product={this.props.products[product]} size={24} />)
       ) :
       '';
-    const service = this.props.service ? <ServiceButton service={this.props.service} sendService={s => this.props.sendService(s)} /> : '';
     const achievements = this.props.achievements.map((a, i) => <Achievement type={a.key} key={i} />);
     return <div className="row" style={this.props.style}>
       <div className="col" style={{marginTop: '6px', fontSize: '24px'}}>
@@ -40,7 +38,7 @@ export default class Row extends Component {
       </div>
       <div className={this.props.service ? "col-7" : "col"}>
         <div className="btn-toolbar" role="toolbar" style={{float: "right"}}>
-          {service}{buttons}
+          {buttons}
         </div>
       </div>
     </div>
