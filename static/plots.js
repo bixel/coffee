@@ -33,38 +33,36 @@ function plotCoffeeCurve(response){
 function plotPopularTimes(response){
   var trace_last_four_weeks = {
     type: "histogram",
-    x: response.last_four_weeks,
-    histnorm: 'probability',
+    // transform to correct timezone
+    x: response.last_four_weeks.map(t => t * 1000 - 3600 * 1000),
     name: 'Letzte vier Wochen',
     opacity: 0.8,
     xbins: {
-      start: 6 * 3600,
-      end: 20 * 3600,
-      size: 1800,
+      start: 6 * 3600 * 1000,
+      end: 20 * 3600 * 1000,
+      size: 1800 * 1000,
     },
   };
   var trace_last_week = {
     type: "histogram",
-    histnorm: 'probability',
-    x: response.last_week,
+    // transform to correct timezone
+    x: response.last_week.map(t => t * 1000 - 3600 * 1000),
     name: 'Letzte Woche',
     opacity: 0.4,
     xbins: {
-      start: 6 * 3600,
-      end: 20 * 3600,
-      size: 1800,
+      start: 6 * 3600 * 1000,
+      end: 20 * 3600 * 1000,
+      size: 1800 * 1000,
     },
   };
-  var ticktext = [6, 8, 10, 12, 14, 16, 18, 20]
-  var tickvals = ticktext.map(x => x * 3600);
   var layout = {
     title: 'Beliebte Zeiten',
     xaxis: {
-      autorange: false,
-      range: [6 * 3600, 20 * 3600],
-      tickvals: tickvals,
-      ticktext: ticktext,
+      // autorange: false,
+      // range: [6 * 3600, 20 * 3600],
       title: 'Tageszeit / Stunden',
+      type: 'date',
+      tickformat: '%H:%M',
     },
     yaxis: {
       title: 'Kaffee-Dichte / 30 Minuten',
