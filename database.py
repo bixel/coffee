@@ -30,10 +30,8 @@ class AchievementDocument(Document):
 
     def save(self, *args, **kwargs):
         try:
-            print('trying')
             for f in self.achievement_functions:
                 f(self)
-            print(self.achievement_functions)
         except AttributeError:
             # AttributeError is ok here since the document might not have any
             # achievements
@@ -260,7 +258,6 @@ class User(Document):
         cs = list(Consumption.objects.aggregate(*consume_pipeline))
         ts = list(Transaction.objects.aggregate(*transaction_pipeline))
         sorted_result = sorted(cs + ts, key=lambda t: t['_id'])
-        print(sorted_result)
         return [{'amount': t['diff'],
                  'date': pendulum.from_format(t['_id'], '%Y%m%d').to_date_string()}
                  for t in sorted_result]

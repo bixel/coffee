@@ -308,7 +308,10 @@ def js_url(script):
 
 @bp.route('/admin/')
 @admin_required
-def admin():
+def admin(foo=True):
+    # append jsdev get argument if in debug mode
+    if app.config['DEBUG'] and not 'jsdev' in request.args.keys():
+        return redirect(url_for('coffee.admin', jsdev=True))
     pform = PaymentForm()
     pform.uid.choices = User.get_uids()
     cform = ConsumptionForm()
@@ -382,7 +385,6 @@ def submit_payment():
     # prevent inaccurate input parsing (see
     # https://docs.python.org/3.6/tutorial/floatingpoint.html)
     amount = int(round(float(pform.amount.data) * 100))
-    print('Payment input:', pform.amount.data, amount)
     user = User.objects.get(id=uid)
     transaction = Transaction(user=user, diff=amount,
                               description='{} payment from {}'
@@ -490,6 +492,9 @@ def administrate_consumption():
 @bp.route("/app/", methods=['GET'])
 @guest_required
 def mobile_app():
+    # append jsdev get argument if in debug mode
+    if app.config['DEBUG'] and not 'jsdev' in request.args.keys():
+        return redirect(url_for('coffee.mobile_app', jsdev=True))
     return render_template('app.html', code_url=js_url('app'))
 
 
