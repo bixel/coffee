@@ -9,10 +9,6 @@ let achievementTypes = {
     className: "fas fa-expand-arrows-alt",
     style: {color: "Green"}
   },
-  symmetric_coffee: {
-    className: "fas fa-expand-arrows-alt",
-    style: {color: "Green"}
-  },
   minimalist: {
     className: "fas fa-money-bill-alt",
     style: {color: "Purple"}
