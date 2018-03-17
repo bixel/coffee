@@ -345,18 +345,30 @@ def admin_api(function):
                ]
 
     def next_service_periods():
-        latestDate = (Service.objects.order_by('-date').first()
-                      .date.timestamp()
-                      if Service.objects
-                      else pendulum.now().timestamp())
-        latest_service = pendulum.from_timestamp(latestDate)
-        periods = []
-        for _ in range(8):
-            nmo = latest_service.next(pendulum.MONDAY)
-            nfr = nmo.next(pendulum.FRIDAY)
-            periods.append('%s:%s' %(nmo.to_date_string(), nfr.to_date_string()))
-            latest_service = nfr
-        return periods
+        """ Return a list of date perios where no master service is defined
+        """
+        # get all upcoming services
+        upcomingServices = list(Service.objects.aggregate(
+            {'$match': {
+                'date': {'$gte': pendulum.today()},
+                'master': True,
+                }},
+            {'$group': {
+                '_id': {
+                    '$dateToString': {
+                        # group by Year-Week
+                        'format': '%Y%U', 'date': '$date'}
+                    }
+                }}))
+        # also get upcoming 8 weeks if no service is set for this week
+        upcoming_weeks = []
+        nextMonday = pendulum.today().next(pendulum.MONDAY)
+        for weekDelta in range(8):
+            nextStartDate = nextMonday.add(weeks=weekDelta)
+            if nextStartDate.format('%Y%U') not in [s['_id'] for s in upcomingServices]:
+                nextEndDate = nextStartDate.next(pendulum.FRIDAY)
+                upcoming_weeks.append(f'{nextStartDate.to_date_string()}:{nextEndDate.to_date_string()}')
+        return upcoming_weeks
 
     if function == 'listofshame':
         return jsonify(list=listofshame(), nextServicePeriods=next_service_periods())
