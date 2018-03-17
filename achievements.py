@@ -1,5 +1,6 @@
 import random
 import pendulum
+import datetime
 
 from database import Consumption, Service, Achievement, AchievementDescriptions
 from config import COFFEE_PRICES
@@ -40,3 +41,48 @@ def SymmetricCoffee(consumption):
         new = Achievement(description=get_description_for_key(key), key=key)
         consumption.user.achievements.append(new)
         consumption.user.save()
+
+@Consumption.achievement_function
+def Minimalist(consumption, debug=True):
+    key = 'minimalist'
+    n_consumptions_total = len(Consumption.objects(user=consumption.user))
+
+    if n_consumptions_total < 5:
+        return
+
+    today = consumption.date
+    p1, p2 = [p[0] for p in COFFEE_PRICES]
+
+    last_consumption_date = Consumption.objects(
+            user=consumption.user
+        ).order_by('-date').first().date
+
+    if not last_consumption_date.weekday() == 4:
+        return
+
+    if last_consumption_date.date() == today.date():
+        return
+
+    shift = 1 if n_consumptions_total==5 else 0
+    if (Consumption.objects(user=consumption.user).order_by('-date')[4-shift].date.date() == \
+        Consumption.objects(user=consumption.user).order_by('-date')[5-shift].date.date()):
+        return
+
+    complete_week_deltas = [
+        datetime.timedelta(i) for i in range(0,5,1)
+    ]
+
+    consumptions_to_check = Consumption.objects(
+            user=consumption.user
+        ).order_by('-date')[0:5]
+    for consumption_to_check, delta in zip(
+        consumptions_to_check, complete_week_deltas):
+        if consumption_to_check.date.date() != (last_consumption_date - delta).date():
+            return
+
+        if consumption_to_check.price_per_unit != p1:
+            return
+
+    new = Achievement(description=get_description_for_key(key), key=key)
+    consumption.user.achievements.append(new)
+    consumption.user.save()
