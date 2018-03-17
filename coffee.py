@@ -409,7 +409,8 @@ def submit_payment():
         msg.add_recipient(user.email)
         msg.body = render_template('mail/payment',
                                    amount=amount,
-                                   balance=user.balance)
+                                   balance=user.balance,
+                                   minister_name=app.config['MAIL_MINISTER_NAME'])
         flash('Mail sent to user {}'.format(user.name))
         if not app.config['DEBUG']:
             mail.send(msg)
@@ -452,7 +453,8 @@ def warning_mail(user):
     msg.charset = 'utf-8'
     msg.add_recipient(user.email)
     msg.body = render_template('mail/lowbudget',
-                               balance=euros(user.balance))
+                               balance=euros(user.balance),
+                               minister_name=app.config['MAIL_MINISTER_NAME'])
     if not app.config['DEBUG']:
         mail.send(msg)
     else:

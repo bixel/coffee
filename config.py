@@ -29,6 +29,7 @@ MAIL_USE_TLS = True
 MAIL_USERNAME = os.environ.get('COFFEE_MAILUSER')
 MAIL_PASSWORD = os.environ.get('COFFEE_PASSWORD')
 MAIL_DEFAULT_SENDER = os.environ.get('COFFEE_MAILADDRESS', 'admin@coffee.dev')
+MAIL_MINISTER_NAME = os.environ.get('COFFEE_MINISTER_NAME', 'Mr. Minister')
 
 BUDGET_WARN_BELOW = 0
 
