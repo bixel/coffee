@@ -15,15 +15,19 @@ export default class ListOfShame extends Component {
     }
   }
 
+  parseListOfShame(data){
+    var list = data.list.map(item => {
+      item.last_service = new Date(item.last_service);
+      return item;
+    });
+    return list.sort(this.listOrder[this.state.order]);
+  }
+
   componentDidMount(){
     $.getJSON(this.url + 'api/listofshame/', (data) => {
       // First convert all dates to js date objects
-      var list = data.list.map(item => {
-        item.last_service = new Date(item.last_service);
-        return item;
-      });
       this.setState({
-        list: list.sort(this.listOrder[this.state.order]),
+        list: this.parseListOfShame(data),
         nextServicePeriods: data.nextServicePeriods,
       });
     });
@@ -50,7 +54,7 @@ export default class ListOfShame extends Component {
       url: this.url + 'api/add_service/',
       data: JSON.stringify(data),
       success: data => {
-        this.setState({list: data.list.sort(this.listOrder[this.state.order]),
+        this.setState({list: this.parseListOfShame(data),
                        nextServicePeriods: data.nextServicePeriods});
       },
       contentType: 'application/json; charset=utf-8',
