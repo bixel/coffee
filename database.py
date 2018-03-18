@@ -20,24 +20,17 @@ class AchievementDocument(Document):
     On every save, each function which has been decorated as an achievement
     will be called. This way, possible achievements can be evaluated.
     """
+    achievement_functions = []
+
     @classmethod
     def achievement_function(cls, f):
-        try:
-            cls.achievement_functions += [f]
-        except:
-            cls.achievement_functions = [f]
+        cls.achievement_functions += [f]
         return f
 
     def save(self, *args, **kwargs):
-        try:
-            for f in self.achievement_functions:
-                f(self)
-        except AttributeError:
-            # AttributeError is ok here since the document might not have any
-            # achievements
-            pass
+        for f in self.achievement_functions:
+            f(self)
         return super().save(*args, **kwargs)
-
 
     meta = {
             'allow_inheritance': True,
@@ -45,13 +38,17 @@ class AchievementDocument(Document):
 
 
 class Achievement(EmbeddedDocument):
+    title = StringField()
     description = StringField()
     key = StringField()
     date = DateTimeField(default=pendulum.now)
+    validUntil = DateTimeField(default=lambda: pendulum.now().add(days=7))
 
 
 class AchievementDescriptions(Document):
     key = StringField()
+    title = StringField()
+    validDays = IntField()
     descriptions = ListField(StringField())
 
 

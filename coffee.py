@@ -76,9 +76,19 @@ class UserView(AuthenticatedModelView):
     inline_models = ['service']
     form_subdocuments = {
         'achievements': {
+            # weirdo None field like here
+            # http://flask-admin.readthedocs.io/en/latest/api/mod_contrib_mongoengine/#flask_admin.contrib.mongoengine.ModelView.form_subdocuments
             'form_subdocuments': {
                 None: {
-                    'form_columns': ('key', 'date')
+                    'form_columns': None,
+                    'form_widget_args': {
+                        'title': {
+                            'rows': 1
+                            },
+                        'key': {
+                            'rows': 1
+                            }
+                        }
                     }
                 }
             }

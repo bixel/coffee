@@ -2,20 +2,34 @@ import random
 import pendulum
 import datetime
 
+from flask import flash
+
 from database import Consumption, Service, Achievement, AchievementDescriptions
 from config import COFFEE_PRICES
 
 
-def get_description_for_key(key):
-    description_pool = (AchievementDescriptions
-            .objects(key=key).first().descriptions)
+def get_kwargs_for_key(key):
     try:
-        return random.choice(description_pool)
+        description = AchievementDescriptions.objects(key=key).first()
+        return {
+            'title': description.title,
+            'description': random.choice(description.descriptions),
+            'validUntil': pendulum.now().add(days=description.validDays)
+            }
     except IndexError as e:
-        print(f'Warning: the description pool for \'{key}\' is empty. ({e}).')
-        return 'You got an achievement'
-    except:
-        raise
+        flash(f'Warning: the description pool for \'{key}\' is empty. ({e}).')
+        return {
+            'title': 'Achievement',
+            'description': 'Great! You\'ve got an achievement but the devs were'
+                'too lazy to think of a funny description...',
+            }
+    except AttributeError as e:
+        flash(f'Warning: no description pool for \'{key}\' available. Please'
+              ' add some descriptions in the database')
+        return {
+            'title': 'Achievement',
+            'description': 'Either you have a new achievement or there was a bug',
+            }
 
 
 @Consumption.achievement_function
@@ -25,7 +39,7 @@ def FirstCoffeeOfTheDay(consumption):
     # first, get the date of the last coffee
     last_day = Consumption.objects.order_by('-date').first().date.date()
     if consumption.date.date() > last_day:
-        new = Achievement(description=get_description_for_key(key), key=key)
+        new = Achievement(**get_kwargs_for_key(key), key=key)
         consumption.user.achievements.append(new)
         consumption.user.save()
 
@@ -38,12 +52,13 @@ def SymmetricCoffee(consumption):
     p1, p2 = [p[0] for p in COFFEE_PRICES]
     todays_coffees = [c.price_per_unit for c in coffees] + [consumption.price_per_unit]
     if todays_coffees == [p1, p2, p1, p1, p2, p1]:
-        new = Achievement(description=get_description_for_key(key), key=key)
+        new = Achievement(**get_kwargs_for_key(key), key=key)
         consumption.user.achievements.append(new)
         consumption.user.save()
 
+
 @Consumption.achievement_function
-def Minimalist(consumption, debug=True):
+def Minimalist(consumption):
     key = 'minimalist'
     n_consumptions_total = len(Consumption.objects(user=consumption.user))
 
@@ -83,6 +98,6 @@ def Minimalist(consumption, debug=True):
         if consumption_to_check.price_per_unit != p1:
             return
 
-    new = Achievement(description=get_description_for_key(key), key=key)
+    new = Achievement(**get_kwargs_for_key(key), key=key)
     consumption.user.achievements.append(new)
     consumption.user.save()
