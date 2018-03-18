@@ -139,6 +139,10 @@ class MailCredentialsForm(FlaskForm):
 
 
 def getMailServer():
+    # dont even try if no username is given
+    if not app.config['MAIL_USERNAME']:
+        return
+
     # try to get the mail connection from the app context
     s = getattr(g, '_mailserver', None)
 
