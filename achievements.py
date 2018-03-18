@@ -101,3 +101,14 @@ def Minimalist(consumption):
     new = Achievement(**get_kwargs_for_key(key), key=key)
     consumption.user.achievements.append(new)
     consumption.user.save()
+
+
+@Consumption.achievement_function
+def professional_stalker(consumption):
+    target_user = User.objects.get(username='admin')
+    todays_target_consumptions = (Consumption
+            .objects(user=target_user, date__gte=pendulum.today())
+            .order_by('-date'))
+    todays_user_consumptions = (Consumption
+            .objects(user=consumption.user, date__gte=pendulum.today())
+            .order_by('-date'))
