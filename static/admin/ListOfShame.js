@@ -88,9 +88,9 @@ export default class ListOfShame extends Component {
       <tr key={user.id}>
         <td>€ {(user.balance/100).toFixed(2)}</td>
         <td><a href={user.switch_url}>{user.name}</a></td>
-        <td>{user.vip ? '' : user.score.toFixed(4)}</td>
+        <td>{user.vip ? 'VIP' : user.score.toFixed(4)}</td>
         <td>{user.vip ? '' : serviceToolbar(user.id)}</td>
-        <td>{user.last_service.toLocaleDateString()}</td>
+        <td>{user.last_service.toLocaleDateString('de-DE')}</td>
       </tr>
     ));
     return <table className="table table-striped table-hover">
