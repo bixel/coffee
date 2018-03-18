@@ -36,9 +36,11 @@ from flask_login import (LoginManager,
                          current_user,
                          login_required)
 from flask_wtf import FlaskForm
-from flask_mail import Mail, Message
 from flask_admin import Admin
 from flask_admin.contrib.mongoengine import ModelView
+
+import smtplib
+from email.message import EmailMessage
 
 from mongoengine import connect
 
@@ -57,8 +59,6 @@ login_manager.login_view = 'coffee.login'
 login_manager.blueprint_login_views = {
     'coffee': 'coffee.login',
 }
-
-mail = Mail(app)
 
 
 class AuthenticatedModelView(ModelView):
@@ -138,12 +138,28 @@ class MailCredentialsForm(FlaskForm):
     password = PasswordField('Password')
 
 
-def mail_available():
-    try:
-        with mail.connect() as _:
-            return True
-    except:
-        return False
+def getMailServer():
+    # try to get the mail connection from the app context
+    s = getattr(g, '_mailserver', None)
+
+    # establish a new connection if none is available
+    if s is None:
+        try:
+            s = smtplib.SMTP(app.config['MAIL_SERVER'], app.config['MAIL_PORT'])
+            s.starttls()
+            s.login(app.config['MAIL_USERNAME'], app.config['MAIL_PASSWORD'])
+            g._mailserver = s
+        except:
+            flash(f'Could not connect to Mailserver {app.config["MAIL_SERVER"]}.')
+            return
+    else:
+        # test the mail connection
+        try:
+            s.ehlo()
+        except Exception as e:
+            return
+
+    return s
 
 
 def guest_required(f):
@@ -321,12 +337,15 @@ def admin(foo=True):
         cform.units[-1].label = title
     eform = ExpenseForm()
     mail_form = MailCredentialsForm()
+
+    # try to contact the mailserver and report a successful login
+    mailServer = getMailServer()
     return render_template('admin.html', payment_form=pform,
                            consumption_form=cform, expense_form=eform,
                            mail_form=mail_form,
                            mail_username=app.config['MAIL_USERNAME'] or '',
                            code_url=js_url('admin'),
-                           mail_status=mail_available())
+                           mail_status=mailServer is not None)
 
 
 @bp.route('/admin/api/<function>/', methods=['GET', 'POST'])
@@ -403,17 +422,17 @@ def submit_payment():
                               .format(euros(amount), user.name))
     transaction.save()
     if user.email:
-        msg = Message('[Kaffeeministerium] Einzahlung von {}'
-                      .format(euros(amount)))
-        msg.charset = 'utf-8'
-        msg.add_recipient(user.email)
-        msg.body = render_template('mail/payment',
-                                   amount=amount,
-                                   balance=user.balance,
-                                   minister_name=app.config['MAIL_MINISTER_NAME'])
+        msg = EmailMessage()
+        msg['Subject'] = f'[Kaffeeministerium] Einzahlung von {euros(amount)}'
+        msg['From'] = app.config['MAIL_DEFAULT_SENDER']
+        msg['To'] = user.email
+        msg.set_content(render_template(
+            'mail/payment', amount=amount, balance=user.balance,
+            minister_name=app.config['MAIL_MINISTER_NAME']))
         flash('Mail sent to user {}'.format(user.name))
         if not app.config['DEBUG']:
-            mail.send(msg)
+            s = getMailServer()
+            s.send_message(msg)
         else:
             print(u'Sending mail \n{}'.format(msg.as_string()))
 
@@ -439,26 +458,12 @@ def administrate_mail_credentials():
     else:
         app.config['MAIL_USERNAME'] = mform.mail_user.data
         app.config['MAIL_PASSWORD'] = mform.password.data
-        mail.init_app(app)
-        if mail_available():
+        if getMailServer() is not None:
             flash('Mail credentials updated')
         else:
             flash('Mail connection could not be established.')
 
     return redirect(url_for('coffee.admin'))
-
-
-def warning_mail(user):
-    msg = Message(u"[Kaffeeministerium] Geringes Guthaben!")
-    msg.charset = 'utf-8'
-    msg.add_recipient(user.email)
-    msg.body = render_template('mail/lowbudget',
-                               balance=euros(user.balance),
-                               minister_name=app.config['MAIL_MINISTER_NAME'])
-    if not app.config['DEBUG']:
-        mail.send(msg)
-    else:
-        print(u'Sending mail \n{}'.format(unicode(msg.as_string(), 'utf-8')))
 
 
 @bp.route("/administrate/consumption", methods=['POST'])
@@ -487,18 +492,21 @@ def administrate_consumption():
     balance = user.balance
     if balance < app.config['BUDGET_WARN_BELOW']:
         if user.email:
-            msg = Message(u"[Kaffeeministerium] Geringes Guthaben!")
-            msg.charset = 'utf-8'
-            msg.add_recipient(user.email)
-            msg.body = render_template('mail/lowbudget',
-                                       balance=euros(balance))
+            msg = EmailMessage()
+            msg['Subject'] = f'[Kaffeeministerium] Geringes Guthaben!'
+            msg['From'] = app.config['MAIL_DEFAULT_SENDER']
+            msg['To'] = user.email
+            msg.set_content(render_template('mail/lowbudget',
+                balance=euros(balance), minister_name=app.config['MAIL_MINISTER_NAME']))
             if not app.config['DEBUG']:
-                mail.send(msg)
+                s = getMailServer()
+                s.send_message(msg)
             else:
                 print(u'Sending mail \n{}'.format(msg.as_string()))
             flash('Warning mail sent. Balance is {}'.format(euros(balance)))
         else:
-            flash('Balance is {}. User could not be notified.'.format(euros(balance)))
+            flash(f'Balance is {euros(balance)}. User {user.name} could not be'
+                  ' notified, no mail address available.')
 
     return redirect(url_for('coffee.admin'))
 
