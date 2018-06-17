@@ -19,7 +19,7 @@ MONGODB_TZ_AWARE = True
 
 LDAP_HOST = os.environ.get('COFFEE_LDAP_HOST', 'localhost')
 LDAP_SEARCH_BASE = os.environ.get('COFFEE_LDAP_SEARCH', 'ou=people,dc=coffee,dc=ldap')
-LDAP_PORT = 389
+LDAP_PORT = os.environ.get('COFFEE_LDAP_PORT', 389)
 
 SERVER = os.environ.get('COFFEE_SERVER', 'localhost')
 PORT = os.environ.get('COFFEE_PORT', 5000)

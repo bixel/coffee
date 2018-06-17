@@ -1,5 +1,6 @@
-from ldap3 import Server, Connection
+from ldap3 import Server, Connection, ANONYMOUS, AUTO_BIND_TLS_BEFORE_BIND, ALL
 from ldap3.core.exceptions import LDAPBindError
+from ldap3.extend.standard.whoAmI import WhoAmI
 from config import (LDAP_HOST,
                     LDAP_PORT,
                     LDAP_SEARCH_BASE,
@@ -11,26 +12,33 @@ from flask_login import login_user
 from flask import flash
 
 
-def ldap_authenticate(username, password):
-    # the guest user is special
-    if username == 'guest':
-        return None
+def get_user_dn(username_or_email):
+    server = Server(LDAP_HOST, port=LDAP_PORT, use_ssl=True, get_info=ALL)
+    connection = Connection(
+            server, auto_bind=AUTO_BIND_TLS_BEFORE_BIND,
+            authentication=ANONYMOUS
+            )
+    connection.search(
+            LDAP_SEARCH_BASE,
+            f'(|(uid={username_or_email})(email={username_or_email}))'
+            )
+    return connection.entries[0].entry_dn
 
+
+def ldap_authenticate(dn, username_or_email, password):
     try:
-        ldap_server = Server(LDAP_HOST, port=LDAP_PORT)
-        base_dn = LDAP_SEARCH_BASE
-        ldap_conn = Connection(ldap_server,
-                               "uid={},{}".format(username, base_dn),
-                               password,
-                               auto_bind=True)
-        if ldap_conn.search(base_dn,
-                            '(&(objectclass=person)(uid={}))'.format(username),
-                            attributes=['mail', 'cn']):
+        ldap_server = Server(LDAP_HOST, port=LDAP_PORT, use_ssl=True, get_info=ALL)
+        ldap_conn = Connection(ldap_server, dn, password, auto_bind=AUTO_BIND_TLS_BEFORE_BIND)
+        if ldap_conn.search(LDAP_SEARCH_BASE,
+                            '(|(email={0})(uid={0}))'.format(username_or_email),
+                            attributes=['mail', 'cn', 'uid']):
             return ldap_conn.entries
     except LDAPBindError as e:
         if DEBUG:
             print(e)
         return None
+    except Exception as e:
+        raise e
 
 
 def ldap_login(username, password, remember=False):
@@ -46,10 +54,14 @@ def ldap_login(username, password, remember=False):
         login_user(user, remember=remember)
         return True
 
-    data = ldap_authenticate(username, password)
+    if username == 'guest':
+        return False
+
+    user_dn = get_user_dn(username)
+    data = ldap_authenticate(user_dn, username, password)
     if data:
         try:
-            user = User.objects.get(username=username)
+            user = User.objects.get(username=data[0]['uid'])
         except:
             user = User(username=username)
         user.name = str(data[0]['cn'])
