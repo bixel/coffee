@@ -38,11 +38,10 @@ from flask_login import (LoginManager,
 from flask_wtf import FlaskForm
 from flask_admin import Admin
 from flask_admin.contrib.mongoengine import ModelView
+from flask_mongoengine import MongoEngine
 
 import smtplib
 from email.message import EmailMessage
-
-from mongoengine import connect
 
 from database import User, Transaction, Service, Consumption, AchievementDescriptions
 from authentication import user_login
@@ -51,6 +50,7 @@ import achievements
 app = Flask(__name__)
 app.config.from_object('config')
 app.config.from_envvar('COFFEE_SETTINGS', silent=True)
+db = MongoEngine(app)
 
 bp = Blueprint('coffee', __name__, template_folder='templates', static_folder='static')
 
@@ -649,7 +649,4 @@ login_manager.login_view = 'login'
 app.register_blueprint(bp, url_prefix=app.config['BASEURL'])
 
 if __name__ == '__main__':
-    connect(app.config['DB_NAME'],
-            host=app.config['DB_HOST'],
-            port=app.config['DB_PORT'])
     app.run(host=app.config['SERVER'], port=app.config['PORT'])
