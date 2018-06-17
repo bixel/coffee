@@ -12,9 +12,10 @@ COFFEE_PRICES = [
     [50, u'Milchkaffee']
 ]
 
-DB_NAME = os.environ.get('COFFEE_DB_NAME', 'coffeedb')
-DB_HOST = os.environ.get('COFFEE_DB_HOST', '127.0.0.1')
-DB_PORT = os.environ.get('COFFEE_DB_PORT', 27017)
+MONGODB_DB = os.environ.get('COFFEE_DB_NAME', 'coffeedb')
+MONGODB_HOST = os.environ.get('COFFEE_DB_HOST', '127.0.0.1')
+MONGODB_PORT = os.environ.get('COFFEE_DB_PORT', 27017)
+MONGODB_TZ_AWARE = True
 
 LDAP_HOST = os.environ.get('COFFEE_LDAP_HOST', 'localhost')
 LDAP_SEARCH_BASE = os.environ.get('COFFEE_LDAP_SEARCH', 'ou=people,dc=coffee,dc=ldap')

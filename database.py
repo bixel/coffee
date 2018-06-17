@@ -12,7 +12,7 @@ from mongoengine import (connect,
 from math import exp
 import pendulum
 from flask import flash
-from config import DB_NAME, DB_HOST, DB_PORT, TZ
+from config import TZ
 
 
 class AchievementDocument(Document):
@@ -298,6 +298,7 @@ class User(Document):
             timediff = latest - s.date
             services += s.service_count * exp(-timediff.days / 365)
         for c in Consumption.objects(user=self):
+            print(latest, c.date, type(c.date))
             timediff = latest - c.date
             units = c.units or 0
             consumptions += units * exp(-timediff.days / 365)
