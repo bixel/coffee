@@ -29,22 +29,18 @@ and `CTRL-C` two times to stop all processes.
 ### python requirements
 
 Consider creating a [virtual environment with
-python-venv](https://docs.python.org/3/library/venv.html):
+pipenv](https://github.com/pypa/pipenv) and install all dependencies:
 ```
-python3 -m venv env
+pipenv install
 ```
-and activate the environment via
+Activate the environment after that via
 ```
-source env/bin/activate
+pipenv shell
 ```
 The main service is provided with the flask app within `coffee.py`.
-You can install all requirements and run the server via
+Run the coffee-app by running
 ```
-pip install -r requirements.txt
-```
-and run the coffee-app by running
-```
-COFFEE_DEBUG=True python coffee.py
+COFFEE_DEBUG=True FLASK_ENV=development FLASK_APP=coffe.py flask run
 ```
 
 ### database and ldap
@@ -53,7 +49,7 @@ Before logging in and playing around you need to start a mongodb instance.
 I like to use docker for that and keep the development database within the
 virtual environment:
 ```
-mkdir -p $PWD/env/database/
+mkdir -p $(pipenv --venv)/database/
 ```
 Once the db-directory is available, run the docker container named
 `python-coffee`. If you already created this container before, you might need
@@ -62,7 +58,7 @@ to delete it first:
 docker rm coffee-db
 ```
 ```
-docker run -d --name coffee-db -v $PWD/env/database/:/data/db -p 27017:27017 mongo
+docker run -d --name coffee-db -v $(pipenv --venv)/database/:/data/db -p 27017:27017 mongo
 ```
 This command will mount the local directory `$PWD/database/` in which the
 database files will be available throughout different docker sessions.
