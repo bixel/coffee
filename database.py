@@ -20,16 +20,17 @@ class AchievementDocument(Document):
     On every save, each function which has been decorated as an achievement
     will be called. This way, possible achievements can be evaluated.
     """
-    achievement_functions = []
-
     @classmethod
     def achievement_function(cls, f):
-        cls.achievement_functions += [f]
+        cls.achievement_functions = getattr(cls, 'achievement_functions', []) + [f]
         return f
 
     def save(self, *args, **kwargs):
-        for f in self.achievement_functions:
-            f(self)
+        if type(self).objects.count() > 0:
+            # most (all?) achievements only work if there are any instances
+            # in the database
+            for f in getattr(self, 'achievement_functions', []):
+                f(self)
         return super().save(*args, **kwargs)
 
     meta = {

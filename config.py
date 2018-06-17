@@ -36,3 +36,5 @@ BUDGET_WARN_BELOW = 0
 BASEURL = os.environ.get('COFFEE_BASEURL', '')
 
 TZ = os.environ.get('COFFEE_TIMEZONE', 'Europe/Berlin')
+
+ACHIEVEMENT_PROFESSIONAL_STALKER_NAME = os.environ.get('ACHIEVEMENT_PROFESSIONAL_STALKER_NAME', 'testuser')

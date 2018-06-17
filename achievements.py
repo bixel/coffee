@@ -4,8 +4,8 @@ import datetime
 
 from flask import flash
 
-from database import Consumption, Service, Achievement, AchievementDescriptions
-from config import COFFEE_PRICES
+from database import Consumption, Service, Achievement, AchievementDescriptions, User
+from config import COFFEE_PRICES, ACHIEVEMENT_PROFESSIONAL_STALKER_NAME
 
 
 def get_kwargs_for_key(key):
@@ -50,7 +50,10 @@ def SymmetricCoffee(consumption):
     # first get all of todays coffees for current user
     coffees = Consumption.objects(user=consumption.user, date__gte=pendulum.today)
     p1, p2 = [p[0] for p in COFFEE_PRICES]
-    todays_coffees = [c.price_per_unit for c in coffees] + [consumption.price_per_unit]
+    todays_coffees = (
+            [c.price_per_unit for c in coffees]
+            + [consumption.price_per_unit]
+            )
     if todays_coffees == [p1, p2, p1, p1, p2, p1]:
         new = Achievement(**get_kwargs_for_key(key), key=key)
         consumption.user.achievements.append(new)
@@ -105,7 +108,7 @@ def Minimalist(consumption):
 
 @Consumption.achievement_function
 def professional_stalker(consumption):
-    target_user = User.objects.get(username='admin')
+    target_user = User.objects.get(username=ACHIEVEMENT_PROFESSIONAL_STALKER_NAME)
     todays_target_consumptions = (Consumption
             .objects(user=target_user, date__gte=pendulum.today())
             .order_by('-date'))
