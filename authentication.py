@@ -77,7 +77,11 @@ def ldap_login(username, password, remember=False):
     if username == 'guest':
         return False
 
-    user_dn = get_user_dn(username)
+    try:
+        user_dn = get_user_dn(username)
+    except IndexError:
+        # search didnt return anything
+        return False
     data = ldap_authenticate(user_dn, username, password)
     if data:
         username = data[0]['uid'][0]

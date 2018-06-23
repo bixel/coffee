@@ -118,7 +118,7 @@ def professional_stalker(consumption):
     if (len(todays_target_consumptions) >= 5
         and (
              [c.price for c in todays_target_consumptions]
-             == [c.price for c in todays_user_consumptions]):
+             == [c.price for c in todays_user_consumptions])):
         # at least 5 consumptions to compare, and every product was the same
         new = Achievement(**get_kwargs_for_key(key), key=key)
         consumption.user.achievements.append(new)
