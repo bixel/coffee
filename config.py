@@ -1,12 +1,9 @@
 import os
 import sys
 
-DEBUG = os.environ.get("COFFEE_DEBUG", 'False') == 'True'
-TESTING = False
-USE_LDAP = os.environ.get("COFFEE_LDAP", 'True') == 'True'
-SECRET_KEY = os.environ.get('COFFEE_SECRET_KEY', 'super_secret')
-if SECRET_KEY == 'super_secret' and not DEBUG:
-    print('Warning: Please set a secret key in production.')
+DEBUG = os.environ.get("COFFEE_DEBUG", 'False').lower() == 'true'
+USE_LDAP = os.environ.get("COFFEE_LDAP", 'True').lower() == 'true'
+SECRET_KEY = os.environ.get('COFFEE_SECRET_KEY')
 COFFEE_PRICES = [
     [30, u'Kaffee'],
     [50, u'Milchkaffee']
@@ -18,8 +15,11 @@ MONGODB_PORT = os.environ.get('COFFEE_DB_PORT', 27017)
 MONGODB_TZ_AWARE = True
 
 LDAP_HOST = os.environ.get('COFFEE_LDAP_HOST', 'localhost')
-LDAP_SEARCH_BASE = os.environ.get('COFFEE_LDAP_SEARCH', 'ou=people,dc=coffee,dc=ldap')
+LDAP_SEARCH_BASE = os.environ.get('COFFEE_LDAP_SEARCH_BASE', 'ou=people,dc=coffee,dc=ldap')
+LDAP_SEARCH_BIND = os.environ.get('COFFEE_LDAP_SEARCH_BIND')
+LDAP_SEARCH_PASSWORD = os.environ.get('COFFEE_LDAP_SEARCH_PASSWORD')
 LDAP_PORT = os.environ.get('COFFEE_LDAP_PORT', 389)
+LDAP_TLS = os.environ.get('COFFEE_LDAP_TLS', 'true').lower() == 'true'
 
 SERVER = os.environ.get('COFFEE_SERVER', 'localhost')
 PORT = os.environ.get('COFFEE_PORT', 5000)
