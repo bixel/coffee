@@ -257,7 +257,7 @@ class User(Document):
         ts = list(Transaction.objects.aggregate(*transaction_pipeline))
         sorted_result = sorted(cs + ts, key=lambda t: t['_id'])
         return [{'amount': t['diff'],
-                 'date': pendulum.from_format(t['_id'], '%Y%m%d').to_date_string()}
+                 'date': pendulum.from_format(t['_id'], 'YYYYMMDD').to_date_string()}
                  for t in sorted_result]
 
     def backref(self, field, Reference, default=0):
@@ -298,7 +298,6 @@ class User(Document):
             timediff = latest - s.date
             services += s.service_count * exp(-timediff.days / 365)
         for c in Consumption.objects(user=self):
-            print(latest, c.date, type(c.date))
             timediff = latest - c.date
             units = c.units or 0
             consumptions += units * exp(-timediff.days / 365)
