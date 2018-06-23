@@ -106,20 +106,26 @@ def Minimalist(consumption):
     consumption.user.save()
 
 
-@Consumption.achievement_function
-def professional_stalker(consumption):
-    target_user = User.objects.get(username=ACHIEVEMENT_PROFESSIONAL_STALKER_NAME)
+def stalker(consumption, target_username, min_consumptions=5):
+    target_user = User.objects.get(username=target_username)
     todays_target_consumptions = (Consumption
             .objects(user=target_user, date__gte=pendulum.today())
             .order_by('-date'))
     todays_user_consumptions = (Consumption
             .objects(user=consumption.user, date__gte=pendulum.today())
             .order_by('-date'))
-    if (len(todays_target_consumptions) >= 5
+    if (len(todays_target_consumptions) >= min_consumptions  # at least X consumptions
         and (
              [c.price for c in todays_target_consumptions]
-             == [c.price for c in todays_user_consumptions])):
-        # at least 5 consumptions to compare, and every product was the same
+             == [c.price for c in todays_user_consumptions])  # same products
+        and all([t.date < u.date for t, u in zip(
+            todays_target_consumptions, todays_user_consumptions)])  # alternating
+        ):
         new = Achievement(**get_kwargs_for_key(key), key=key)
         consumption.user.achievements.append(new)
         consumption.user.save()
+
+
+@Consumption.achievement_function
+def professional_stalker(consumption):
+    return stalker(consumption, ACHIEVEMENT_PROFESSIONAL_STALKER_NAME)
