@@ -8,3 +8,4 @@ node_modules/
 *.cfg
 .coverage
 htmlcov/
+testing/.env*
