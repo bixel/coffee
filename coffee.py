@@ -572,14 +572,15 @@ def api(function):
 
     def get_service():
         current_service = Service.current()
-        service = {
-            'uid': str(current_service.user.id),
-            'last_cleaned': (Service
+        last_cleaned = (
+                Service
                 .objects(master=True, cleaned=True)
                 .order_by('-date')
                 .first()
-                .date
-                ),
+                )
+        service = {
+            'uid': str(current_service.user.id),
+            'last_cleaned': last_cleaned.date if last_cleaned else 'Never',
             'upcoming': [dict(week=s['_id'], user=str(s['user'])) for s in Service.upcoming()]
         } if current_service else None
         return service
