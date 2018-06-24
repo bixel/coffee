@@ -133,3 +133,11 @@ def professional_stalker(consumption):
     return stalker(
             consumption, ACHIEVEMENT_PROFESSIONAL_STALKER_NAME,
             'professional_stalker', 1)
+
+
+@Service.achievement_function
+def reinigungsfachkraft(service):
+    key = 'reinigungsfachkraft'
+    if service.date.is_friday():
+        previous = Service.objects(date__lte=service.date).limit(5)
+        print(previous)
