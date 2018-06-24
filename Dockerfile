@@ -8,12 +8,13 @@ ADD . /coffee
 
 WORKDIR coffee
 
-RUN pip3 install -r requirements.txt
+RUN pip3 install pipenv
+RUN pipenv install
 RUN npm install && npm run build
 
 EXPOSE 5000
 
-ENV COFFEE_SERVER=0.0.0.0
-ENV COFFEE_DB_HOST=mongo
+ENV DB_HOST=mongo
+ENV FLASK_APP=coffee.py
 
-CMD python3 coffee.py
+CMD pipenv run flask run --host 0.0.0.0
