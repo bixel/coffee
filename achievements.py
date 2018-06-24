@@ -138,6 +138,7 @@ def professional_stalker(consumption):
 @Service.achievement_function
 def reinigungsfachkraft(service):
     key = 'reinigungsfachkraft'
-    if service.date.is_friday():
+    if pendulum.instance(service.date).day_of_week == pendulum.FRIDAY:
         previous = Service.objects(date__lte=service.date).limit(5)
-        print(previous)
+        if all([p.user == service.user and p.cleaned for p in previous]):
+            print('yay')

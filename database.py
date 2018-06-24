@@ -15,13 +15,6 @@ from flask import flash
 from config import TZ
 
 
-class PendulumField(DateTimeField):
-    def to_python(self, value):
-        """ make every datetime a Pendulum datetime"""
-        print(value)
-        return pendulum.instance(super(PendulumField, self).to_python(value))
-
-
 class AchievementDocument(Document):
     """ Wrapper class to attach achievements to documents.
     On every save, each function which has been decorated as an achievement
@@ -49,8 +42,8 @@ class Achievement(EmbeddedDocument):
     title = StringField()
     description = StringField()
     key = StringField()
-    date = PendulumField(default=pendulum.now)
-    validUntil = PendulumField(default=lambda: pendulum.now().add(days=7))
+    date = DateTimeField(default=pendulum.now)
+    validUntil = DateTimeField(default=lambda: pendulum.now().add(days=7))
 
 
 class AchievementDescriptions(Document):
@@ -61,7 +54,7 @@ class AchievementDescriptions(Document):
 
 
 class Transaction(AchievementDocument):
-    date = PendulumField(default=pendulum.now)
+    date = DateTimeField(default=pendulum.now)
     description = StringField(null=True)
     diff = IntField()
     user = ReferenceField('User', null=True)
@@ -102,7 +95,7 @@ class Transaction(AchievementDocument):
 
 
 class Consumption(AchievementDocument):
-    date = PendulumField(default=pendulum.now)
+    date = DateTimeField(default=pendulum.now)
     units = IntField(default=1)
     price_per_unit = IntField()
     user = ReferenceField('User')
@@ -140,7 +133,7 @@ class Consumption(AchievementDocument):
 
 
 class Service(AchievementDocument):
-    date = PendulumField()
+    date = DateTimeField()
     service_count = IntField(default=1)
     user = ReferenceField('User')
     master = BooleanField(default=True)
