@@ -108,7 +108,7 @@ def Minimalist(consumption):
     consumption.user.save()
 
 
-def stalker(consumption, target_username, key, min_consumptions=1):
+def stalker(consumption, target_username, key, min_consumptions=5):
     target_user = User.objects.get(username=target_username)
     todays_target_consumptions = (Consumption
             .objects(user=target_user, date__gte=pendulum.today())
@@ -132,4 +132,4 @@ def stalker(consumption, target_username, key, min_consumptions=1):
 def professional_stalker(consumption):
     return stalker(
             consumption, ACHIEVEMENT_PROFESSIONAL_STALKER_NAME,
-            'professional_stalker')
+            'professional_stalker', 1)
