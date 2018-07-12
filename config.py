@@ -38,4 +38,5 @@ BASEURL = os.environ.get('BASEURL', '')
 
 TZ = os.environ.get('TIMEZONE', 'Europe/Berlin')
 
+ENABLE_ACHIEVEMENTS = os.environ.get('ENABLE_ACHIEVEMENTS', 'true').lower() == 'true'
 ACHIEVEMENT_PROFESSIONAL_STALKER_NAME = os.environ.get('ACHIEVEMENT_PROFESSIONAL_STALKER_NAME', 'testuser')

@@ -12,7 +12,7 @@ from mongoengine import (connect,
 from math import exp
 import pendulum
 from flask import flash
-from config import TZ
+from config import TZ, ENABLE_ACHIEVEMENTS
 
 
 class AchievementDocument(Document):
@@ -26,7 +26,7 @@ class AchievementDocument(Document):
         return f
 
     def save(self, *args, **kwargs):
-        if type(self).objects.count() > 0:
+        if ENABLE_ACHIEVEMENTS and type(self).objects.count() > 0:
             # most (all?) achievements only work if there are any instances
             # in the database
             for f in getattr(self, 'achievement_functions', []):
