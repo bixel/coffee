@@ -58,7 +58,7 @@ export default class List extends Component {
     this.setState(data);
 
     // WARNING: This code is duplicated from the "global.html" template
-    Plotly.d3.json(window.location.origin + '/global_api/consumption_times/', function(err, response){
+    Plotly.d3.json(config.BASEURL.replace('app/', '') + 'global_api/consumption_times/', function(err, response){
       var {
         traces,
         layout
@@ -67,7 +67,7 @@ export default class List extends Component {
     });
 
     // WARNING: This code is duplicated from the "global.html" template
-    Plotly.d3.json(window.location.origin + '/global_api/global_data/', function(err, response){
+    Plotly.d3.json(config.BASEURL.replace('app/', '') + 'global_api/global_data/', function(err, response){
       var {
         traces,
         layout,
