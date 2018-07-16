@@ -34,7 +34,7 @@ class AchievementDocument(Document):
         return super().save(*args, **kwargs)
 
     meta = {
-            'allow_inheritance': True,
+            'abstract': True,
             }
 
 
@@ -91,7 +91,6 @@ class Transaction(AchievementDocument):
     @staticmethod
     def dailyExpenses():
         return list(Transaction.aggregateDaily(Transaction.objects(user=None)))
-
 
 
 class Consumption(AchievementDocument):

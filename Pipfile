@@ -10,6 +10,7 @@ pendulum = "*"
 flask = "*"
 flask-admin = "*"
 flask-login = "*"
+mongoengine = "*"
 
 [dev-packages]
 coverage = "*"

@@ -11,7 +11,7 @@ COFFEE_PRICES = [
 
 MONGODB_DB = os.environ.get('DB_NAME', 'coffeedb')
 MONGODB_HOST = os.environ.get('DB_HOST', '127.0.0.1')
-MONGODB_PORT = os.environ.get('DB_PORT', 27017)
+MONGODB_PORT = int(os.environ.get('DB_PORT', 27017))
 MONGODB_TZ_AWARE = True
 
 LDAP_HOST = os.environ.get('LDAP_HOST', 'localhost')
