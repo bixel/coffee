@@ -4,7 +4,11 @@ RUN apk update
 RUN apk add python3 nodejs nodejs-npm
 RUN python3 -m ensurepip
 
-ADD . /coffee
+ADD achievements.py authentication.py coffee.py config.py database.py \
+    package.json package-lock.json Pipfile Pipfile.lock \
+    webpack.config.js .babelrc /coffee/
+ADD templates /coffee/templates
+ADD static /coffee/static
 
 WORKDIR coffee
 
