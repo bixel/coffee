@@ -9,7 +9,7 @@ into some low-budget tablet.
 
 **tl;dr:** Read and copy paste the following code snippet to get the
 development server running. You will need
-- python3.6 (`brew install python3`)
+- python3.7 (`brew install python3`)
 - docker (`brew cask install docker`)
 - node (`brew install node`)
 - ldap client (usually available on osx anyway)
