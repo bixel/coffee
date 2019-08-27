@@ -340,7 +340,7 @@ def js_url(script):
 @admin_required
 def admin(foo=True):
     # append jsdev get argument if in debug mode
-    if app.config['DEBUG'] and not 'jsdev' in request.args.keys():
+    if app.config['JSDEV'] and not 'jsdev' in request.args.keys():
         return redirect(url_for('coffee.admin', jsdev=True))
     pform = PaymentForm()
     pform.uid.choices = User.get_uids()
@@ -529,7 +529,7 @@ def administrate_consumption():
 @guest_required
 def mobile_app():
     # append jsdev get argument if in debug mode
-    if app.config['DEBUG'] and not 'jsdev' in request.args.keys():
+    if app.config['JSDEV'] and not 'jsdev' in request.args.keys():
         return redirect(url_for('coffee.mobile_app', jsdev=True))
     return render_template('app.html', code_url=js_url('app'))
 

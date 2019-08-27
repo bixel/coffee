@@ -2,6 +2,7 @@ import os
 import sys
 
 DEBUG = os.environ.get("DEBUG", 'False').lower() == 'true'
+JSDEV = os.environ.get('JSDEV', 'False').lower() == 'true'
 USE_LDAP = os.environ.get("LDAP", 'True').lower() == 'true'
 SECRET_KEY = os.environ.get('SECRET_KEY')
 COFFEE_PRICES = [
