@@ -6,8 +6,13 @@
   "repository": "bixel/python-coffee",
   "license": "MIT",
   "devDependencies": {
+    "@babel/cli": "^7.5.5",
+    "@babel/core": "^7.5.5",
+    "@babel/plugin-proposal-object-rest-spread": "^7.5.5",
+    "@babel/preset-env": "^7.5.5",
+    "@babel/preset-react": "^7.0.0",
     "babel-core": "^6.26.3",
-    "babel-loader": "^7.1.4",
+    "babel-loader": "^8.0.6",
     "babel-preset-env": "^1.7.0",
     "babel-preset-es2015": "^6.24.1",
     "babel-preset-react": "^6.24.1",
@@ -15,9 +20,9 @@
     "moment": "^2.21.0",
     "react": "^16.2.0",
     "react-dom": "^16.2.0",
-    "webpack": "^4.16.1",
-    "webpack-cli": "^2.0.12",
-    "webpack-dev-server": "^3.1.4"
+    "webpack": "^4.39.2",
+    "webpack-cli": "^3.3.7",
+    "webpack-dev-server": "^3.8.0"
   },
   "scripts": {
     "start": "webpack-dev-server --hot --inline --progress --mode development",
@@ -25,6 +30,6 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "npm": "^5.7.1"
+    "npm": "^6.11.2"
   }
 }

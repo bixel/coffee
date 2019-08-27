@@ -19,8 +19,17 @@ const config = {
       {
         // React-hot loader and
         test: /\.js$/, // All .js files
-        loaders: ['babel-loader'], // react-hot is like browser sync and babel loads jsx and es6-7
         exclude: [nodeModulesPath],
+        use: {
+          loader: 'babel-loader', // react-hot is like browser sync and babel loads jsx and es6-7
+          options: {
+            presets: [
+              '@babel/preset-env',
+              '@babel/preset-react',
+            ],
+            plugins: ['@babel/plugin-proposal-object-rest-spread']
+          }
+        }
       },
       {
         test: /\.css$/,
