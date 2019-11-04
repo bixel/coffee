@@ -14,7 +14,7 @@
     "classnames": "^2.2.5",
     "moment": "^2.21.0",
     "react": "^16.2.0",
-    "react-dom": "^16.2.0",
+    "react-dom": "^16.2.1",
     "webpack": "^4.16.1",
     "webpack-cli": "^2.0.12",
     "webpack-dev-server": "^3.1.4"
