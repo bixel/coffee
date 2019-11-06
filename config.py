@@ -7,7 +7,7 @@ SECRET_KEY = os.environ.get('COFFEE_SECRET_KEY', 'super_secret')
 if SECRET_KEY == 'super_secret' and not DEBUG:
     print('Warning: Please set a secret key in production.')
 COFFEE_PRICES = [
-    [30, u'Kaffee'],
+    [35, u'Kaffee'],
     [50, u'Milchkaffee']
 ]
 
