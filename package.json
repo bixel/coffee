@@ -25,6 +25,6 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "npm": "^5.7.1"
+    "npm": "^6.13.4"
   }
 }
