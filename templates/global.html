@@ -1,7 +1,7 @@
 {% extends "site.html" %}
 {% block content %}
 <div class="row">
-  <div class="col-xs-12">
+  <div class="col">
     <h1>State of the Coffee</h1>
     <table class="table">
       <tbody>
@@ -24,11 +24,30 @@
         {% endfor %}
       </tbody>
     </table>
-    <div id='global_graph'></div>
-    <script>
-      draw_graph('{{ url_for('coffee.global_data') }}', '#global_graph', 680, 400)
-    </script>
+    <div id="global-graph" style="height: 480px; width: 100%;" class="plotly-graph-div"></div>
+    <div id="coffee-hours" style="height: 480px; width: 100%;" class="plotly-graph-div"></div>
   </div>
 </div>
 
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('coffee.static', filename='plots.js') }}"></script>
+<script type="text/javascript">
+  Plotly.d3.json(window.location.origin + window.location.pathname + 'global_api/global_data/', function(err, response){
+    var {
+      traces,
+      layout
+    } = plotCoffeeCurve(response);
+    Plotly.newPlot('global-graph', traces, layout, {displayModeBar: false});
+  });
+
+  Plotly.d3.json(window.location.origin + window.location.pathname + 'global_api/consumption_times/', function(err, response){
+    var {
+      traces,
+      layout
+    } = plotPopularTimes(response);
+    Plotly.newPlot("coffee-hours", traces, layout, {displayModeBar: false});
+  });
+</script>
 {% endblock %}

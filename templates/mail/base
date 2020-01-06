@@ -5,4 +5,4 @@ Das Kaffeeministerium
 
 Dies ist eine automatisch generierte Mail.
 Aktuelle Informationen finden Sie unter {{ url_for('coffee.index', _external=True) }}
-Der jetzige Kaffeeminister ist Kevin Heinicke.
+Der jetzige Kaffeeminister ist {{ minister_name }}.

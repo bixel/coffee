@@ -15,7 +15,7 @@ const config = {
     publicPath: '/dev-bundle/',
   },
   module: {
-    loaders: [
+    rules: [
       {
         // React-hot loader and
         test: /\.js$/, // All .js files

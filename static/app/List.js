@@ -2,6 +2,9 @@ import React, {Component} from 'react';
 import Row from './Row.js';
 import AddButton from './AddButton.js';
 import Alert from './Alert.js';
+import {plotCoffeeCurve, plotPopularTimes} from '../plots.js';
+import Carousel from './Carousel.js';
+import config from './config.js';
 
 export default class List extends Component {
   constructor(props, context){
@@ -23,32 +26,53 @@ export default class List extends Component {
     this.url = window.location.origin + window.location.pathname;
   }
 
-  addConsumption(db_entry){
-    console.log(db_entry);
-    $.post({
-      url: this.url + 'api/add_consumption/',
-      data: JSON.stringify(db_entry),
-      success: data => this.setState(data),
-      contentType: 'application/json; charset=utf-8',
-      dataType: 'json',
-    }).fail(error => {
-      console.log('error', error);
-    });
-  }
-
   componentDidMount(){
-    $.getJSON(this.url + 'api/user_list/', data => this.setState(data));
+    // get the initial app state immediately
+    $.get(this.url + 'api/user_list/', data => this.updateAppState(data));
+
+    // ...and check for an update every 600s
+    this.updateInterval = window.setInterval(() => {
+      $.get(this.url + 'api/user_list/', data => this.updateAppState(data));
+    }, 600 * 1000);
   }
 
+  /* @TODO this should be moved into the service button */
   sendService(service){
+    let _this = this;
     $.post({
-      url: this.url + 'api/finish_service/',
+      url: config.BASEURL + 'api/finish_service/',
       data: JSON.stringify({service: service}),
-      success: data => this.setState(data),
+      success: data => {
+        _this.updateAppState(data);
+      },
       contentType: 'application/json; charset=utf-8',
       dataType: 'json',
     }).fail(error => {
       console.log('Error while finishing service.', error);
+    });
+  }
+
+  /* pass this function down to all elements who want to update the app state
+   */
+  updateAppState(data){
+    this.setState(data);
+
+    // WARNING: This code is duplicated from the "global.html" template
+    Plotly.d3.json(config.BASEURL.replace('app/', '') + 'global_api/consumption_times/', function(err, response){
+      var {
+        traces,
+        layout
+      } = plotPopularTimes(response);
+      Plotly.newPlot("coffee-hours", traces, layout, {displayModeBar: false});
+    });
+
+    // WARNING: This code is duplicated from the "global.html" template
+    Plotly.d3.json(config.BASEURL.replace('app/', '') + 'global_api/global_data/', function(err, response){
+      var {
+        traces,
+        layout,
+      } = plotCoffeeCurve(response);
+      Plotly.newPlot('global-graph', traces, layout, {displayModeBar: false});
     });
   }
 
@@ -73,17 +97,21 @@ export default class List extends Component {
         key={i}
         userId={user.id}
         consume={user.consume}
-        service={user.id === this.state.service.uid ? this.state.service : undefined}
+        achievements={user.achievements}
         style={{background: background, padding: "4px"}}
-        modifyDatabase={db_entry => this.addConsumption(db_entry)}
-        sendService={service => this.sendService(service)}
+        updateAppState={data => this.updateAppState(data)}
       />
     })
     if(guestUser){
-      rows.push(<Row products={this.state.products} name={guestUser.name}
-                  key={rows.length} userId={guestUser.id} consume={guestUser.consume}
-                  style={{background: background, padding: "4px"}}
-                  modifyDatabase={(db_entry) => this.addConsumption(db_entry)}
+      rows.push(<Row
+        products={this.state.products}
+        name={guestUser.name}
+        key={rows.length}
+        userId={guestUser.id}
+        consume={guestUser.consume}
+        achievements={[]}
+        style={{background: background, padding: "4px"}}
+        updateAppState={data => this.updateAppState(data)}
         />)
     }
     let alert = '';
@@ -91,12 +119,18 @@ export default class List extends Component {
       alert = <Alert type={this.state.alert.type}>{this.state.alert.text}</Alert>;
       setTimeout(() => this.setState({ alert: undefined, }), 5000);
     };
-    return <div className="container" style={{margin: "0px", width: "100%"}}>
+    return <div className="container" style={{margin: 0, maxWidth: "100%"}}>
       <div className="row"><div className="col-xs-12">
         <h1>Kaffeeliste</h1>
       </div></div>
       {rows}
       {alert}
+      <Carousel
+        service={this.state.service}
+        users={this.state.users}
+        updateAppState={data => this.updateAppState(data)}
+        sendService={this.sendService}
+        />
     </div>
   }
 }

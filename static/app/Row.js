@@ -1,7 +1,7 @@
 import React, {Component} from 'react';
 import AddButton from './AddButton.js';
-import ServiceButton from './ServiceButton.js';
 import { Icon } from './Icon.js';
+import Achievement from './Achievement.js';
 
 export default class Row extends Component {
   constructor(props, context){
@@ -16,8 +16,13 @@ export default class Row extends Component {
   render(){
     const buttons = Object.keys(this.props.products).map((name, i) => {
       const product = this.props.products[name];
-      const addButton = <AddButton product={product} key={product.name} name={this.props.name}
-                         modifyDatabase={(cur_consumption) => this.modifyDatabase(cur_consumption)}/>
+      const addButton = (<AddButton
+        product={product}
+        key={product.name}
+        name={this.props.name}
+        userId={this.props.userId}
+        updateAppState={this.props.updateAppState}
+        />);
       return addButton;
       });
     const mugs = this.props.consume ?
@@ -25,15 +30,15 @@ export default class Row extends Component {
         <Icon key={i} product={this.props.products[product]} size={24} />)
       ) :
       '';
-    const service = this.props.service ? <ServiceButton service={this.props.service} sendService={s => this.props.sendService(s)} /> : '';
+    const achievements = this.props.achievements.map((a, i) => <Achievement type={a.key} key={i} />);
     return <div className="row" style={this.props.style}>
-      <div className={this.props.service ? "col-xs-5" : "col-xs-7"} style={{marginTop: '6px', fontSize: '24px'}}>
-        {this.props.name}<br />
+      <div className="col" style={{marginTop: '6px', fontSize: '24px'}}>
+        {this.props.name} {achievements}<br />
         {mugs}
       </div>
-      <div className={this.props.service ? "col-xs-7" : "col-xs-5"}>
-        <div className="btn-toolbar" style={{float: "right"}}>
-          {service}{buttons}
+      <div className={this.props.service ? "col-7" : "col"}>
+        <div className="btn-toolbar" role="toolbar" style={{float: "right"}}>
+          {buttons}
         </div>
       </div>
     </div>

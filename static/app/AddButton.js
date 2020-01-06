@@ -1,5 +1,6 @@
 import React, {Component} from 'react';
-import { Icon } from './Icon.js'
+import { Icon } from './Icon.js';
+import config from './config.js';
 
 const successIconLink = {icon: "https://image.flaticon.com/icons/svg/148/148767.svg",
                          name: "Success"};
@@ -28,6 +29,7 @@ const styles = {
     height: '20px',
     background: '#D75A4A',
     borderRadius: '10px',
+    zIndex: 10,
   },
   addBadgeStyle: {
     position: 'absolute',
@@ -38,6 +40,7 @@ const styles = {
     height: '20px',
     background: '#53D838',
     borderRadius: '10px',
+    zIndex: 10,
   },
 }
 
@@ -67,13 +70,22 @@ export default class AddButton extends Component {
     };
   }
 
-  modifyDatabase(cur_consumption){
+  addConsumption(totalConsumption, userId){
     const db_entry = {
         user: this.props.name,
+        id: this.props.userId,
         cur_consumption: this.state.cur_consumption,
         consumption_type: this.props.product.name
     };
-    this.props.modifyDatabase(db_entry);
+    $.post({
+      url: config.URLs.addConsumption,
+      data: JSON.stringify(db_entry),
+      success: data => this.props.updateAppState(data),
+      contentType: 'application/json; charset=utf-8',
+      dataType: 'json',
+    }).fail(error => {
+      console.log('error', error);
+    });
   }
 
   tick(){
@@ -81,7 +93,7 @@ export default class AddButton extends Component {
         null : this.state.cur_undo_time - 1;
     if (this.state.cur_undo_time == 0 && this.state.cur_consumption > 0) {
         const cur_consumption = this.state.cur_consumption;
-        this.modifyDatabase(cur_consumption);
+        this.addConsumption(cur_consumption, this.props.userId);
         this.setState({
             cur_consumption : 0,
         });
@@ -107,7 +119,7 @@ export default class AddButton extends Component {
       null :
       <button
         type="button"
-        className="btn btn-secondary"
+        className="btn btn-light"
         style={styles.undoButton}
         onClick={() => this.modifyConsumption(-1)}>
           {undoButtonText}<Badge style={styles.cancelBadgeStyle}>{this.state.cur_undo_time}</Badge>
@@ -127,7 +139,7 @@ export default class AddButton extends Component {
         </button>;
 
     return (
-        <div className="btn-group">
+        <div className="btn-group mr-2" role="group">
             {addButton}{undoButton}
         </div>
     )

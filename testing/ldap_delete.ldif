@@ -1,0 +1,4 @@
+uid=testuser,ou=people,dc=coffee,dc=ldap
+uid=admin,ou=people,dc=coffee,dc=ldap
+uid=newuser,ou=people,dc=coffee,dc=ldap
+ou=people,dc=coffee,dc=ldap

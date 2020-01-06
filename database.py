@@ -12,12 +12,48 @@ from mongoengine import (connect,
 from math import exp
 import pendulum
 from flask import flash
-from config import DB_HOST, DB_PORT, TZ
-
-connect('coffeedb', host=DB_HOST, port=DB_PORT)
+from config import TZ, ENABLE_ACHIEVEMENTS
 
 
-class Transaction(Document):
+class AchievementDocument(Document):
+    """ Wrapper class to attach achievements to documents.
+    On every save, each function which has been decorated as an achievement
+    will be called. This way, possible achievements can be evaluated.
+    """
+    @classmethod
+    def achievement_function(cls, f):
+        cls.achievement_functions = getattr(cls, 'achievement_functions', []) + [f]
+        return f
+
+    def save(self, *args, **kwargs):
+        if ENABLE_ACHIEVEMENTS and type(self).objects.count() > 0:
+            # most (all?) achievements only work if there are any instances
+            # in the database
+            for f in getattr(self, 'achievement_functions', []):
+                f(self)
+        return super().save(*args, **kwargs)
+
+    meta = {
+            'abstract': True,
+            }
+
+
+class Achievement(EmbeddedDocument):
+    title = StringField()
+    description = StringField()
+    key = StringField()
+    date = DateTimeField(default=pendulum.now)
+    validUntil = DateTimeField(default=lambda: pendulum.now().add(days=7))
+
+
+class AchievementDescriptions(Document):
+    key = StringField()
+    title = StringField()
+    validDays = IntField()
+    descriptions = ListField(StringField())
+
+
+class Transaction(AchievementDocument):
     date = DateTimeField(default=pendulum.now)
     description = StringField(null=True)
     diff = IntField()
@@ -26,8 +62,38 @@ class Transaction(Document):
     def __str__(self):
         return self.description
 
+    @staticmethod
+    def aggregateDaily(objectSelector):
+        groupStage = {
+                '$group': {
+                    '_id': {
+                        '$dateToString': {
+                            'format': '%Y-%m-%d',
+                            'date': '$date',
+                            }
+                        },
+                    'total': {
+                        '$sum': '$diff',
+                        },
+                    }
+                }
+        sortStage = {
+                '$sort': {
+                    '_id': 1,
+                    },
+                }
+        return objectSelector.aggregate(groupStage, sortStage)
 
-class Consumption(Document):
+    @staticmethod
+    def dailyTransactions():
+        return list(Transaction.aggregateDaily(Transaction.objects))
+
+    @staticmethod
+    def dailyExpenses():
+        return list(Transaction.aggregateDaily(Transaction.objects(user=None)))
+
+
+class Consumption(AchievementDocument):
     date = DateTimeField(default=pendulum.now)
     units = IntField(default=1)
     price_per_unit = IntField()
@@ -40,8 +106,32 @@ class Consumption(Document):
             self.price_per_unit,
         )
 
+    @staticmethod
+    def dailyConsumptions():
+        groupStage = {
+                '$group': {
+                    '_id': {
+                        '$dateToString': {
+                            'format': '%Y-%m-%d',
+                            'date': '$date'
+                            },
+                        },
+                    'total': {
+                        '$sum': {
+                            '$multiply': ['$units', '$price_per_unit'],
+                            }
+                        }
+                    }
+                }
+        sortStage = {
+                '$sort': {
+                    '_id': 1
+                    }
+                }
+        return list(Consumption.objects.aggregate(groupStage, sortStage))
 
-class Service(Document):
+
+class Service(AchievementDocument):
     date = DateTimeField()
     service_count = IntField(default=1)
     user = ReferenceField('User')
@@ -50,12 +140,46 @@ class Service(Document):
     cleaning_program = BooleanField(default=False)
     decalcify_program = BooleanField(default=False)
 
+    @staticmethod
     def current():
         return (Service
                 .objects(date__lte=pendulum.now(TZ), master=True)
                 .order_by('-date')
                 .first()
                 )
+
+    @staticmethod
+    def upcoming():
+        return list(Service.objects.aggregate(
+            {
+                '$match': {
+                    'date': {
+                        '$gte': pendulum.now(TZ),
+                        },
+                    'master': {
+                        '$eq': True,
+                        },
+                    },
+                },
+            {
+                '$group': {
+                    '_id': {
+                        '$dateToString': {
+                            'date': '$date',
+                            'format': '%Y%V',
+                            }
+                        },
+                    'user': {
+                        '$first': '$user'
+                        }
+                    }
+                },
+            {
+                '$sort': {
+                    '_id': 1,
+                    },
+                }
+            ))
 
 
 class User(Document):
@@ -65,6 +189,7 @@ class User(Document):
     active = BooleanField(default=True)
     vip = BooleanField(default=False)
     admin = BooleanField(default=False)
+    achievements = ListField(EmbeddedDocumentField(Achievement))
 
     @property
     def is_authenticated(self):
@@ -101,11 +226,13 @@ class User(Document):
 
     def consumption_list(self):
         match = {'$match': {'user': self.id}}
-        # id will be an integer representing YYYYWW
-        group_id = {'$sum': [
-            {'$multiply': [100, {'$year': '$date'}]},
-            {'$week': '$date'}
-        ]}
+        # id will be an integer representing YYYYmmdd
+        group_id = {
+                '$dateToString': {
+                    'date': '$date',
+                    'format': '%Y%m%d',
+                    }
+                }
         consume_pipeline = [
             match,
             {
@@ -129,7 +256,7 @@ class User(Document):
         ts = list(Transaction.objects.aggregate(*transaction_pipeline))
         sorted_result = sorted(cs + ts, key=lambda t: t['_id'])
         return [{'amount': t['diff'],
-                 'date': pendulum.from_format('%d1' % t['_id'], '%Y%W%w').to_date_string()}
+                 'date': pendulum.from_format(t['_id'], 'YYYYMMDD').to_date_string()}
                  for t in sorted_result]
 
     def backref(self, field, Reference, default=0):
@@ -164,12 +291,13 @@ class User(Document):
 
         services = 0
         consumptions = 1
-        now = Service.objects.order_by('-date').first().date
+        latestService = Service.objects.order_by('-date').first()
+        latest = latestService.date if latestService else pendulum.now()
         for s in Service.objects(user=self):
-            timediff = now - s.date
+            timediff = latest - s.date
             services += s.service_count * exp(-timediff.days / 365)
         for c in Consumption.objects(user=self):
-            timediff = now - c.date
+            timediff = latest - c.date
             units = c.units or 0
             consumptions += units * exp(-timediff.days / 365)
         return services**3 / consumptions
@@ -183,6 +311,7 @@ class User(Document):
             return
         Transaction.objects(user=self).update(user=guest_user)
         Consumption.objects(user=self).update(user=guest_user)
+        Service.objects(user=self).update(user=guest_user)
         super().delete(*args, **kwargs)
 
     def get_uids():

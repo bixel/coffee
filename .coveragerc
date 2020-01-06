@@ -1,0 +1,6 @@
+[run]
+include =
+    ./authentication.py
+    ./coffee.py
+    ./config.py
+    ./database.py

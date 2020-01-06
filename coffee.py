@@ -2,7 +2,6 @@ from functools import wraps
 
 from datetime import datetime, timedelta
 import pendulum
-from ldap3 import Server, Connection
 from wtforms import (StringField,
                      PasswordField,
                      BooleanField,
@@ -29,6 +28,7 @@ from flask import (Flask,
                    flash,
                    jsonify,
                    Blueprint,
+                   session,
                    abort)
 from flask_login import (LoginManager,
                          login_user,
@@ -36,15 +36,21 @@ from flask_login import (LoginManager,
                          current_user,
                          login_required)
 from flask_wtf import FlaskForm
-from flask_mail import Mail, Message
 from flask_admin import Admin
 from flask_admin.contrib.mongoengine import ModelView
+from flask_mongoengine import MongoEngine
 
-from database import User, Transaction, Service, Consumption
+import smtplib
+from email.message import EmailMessage
+
+from database import User, Transaction, Service, Consumption, AchievementDescriptions
+from authentication import user_login
+import achievements
 
 app = Flask(__name__)
 app.config.from_object('config')
 app.config.from_envvar('COFFEE_SETTINGS', silent=True)
+db = MongoEngine(app)
 
 bp = Blueprint('coffee', __name__, template_folder='templates', static_folder='static')
 
@@ -54,24 +60,58 @@ login_manager.blueprint_login_views = {
     'coffee': 'coffee.login',
 }
 
-mail = Mail(app)
-
 
 class AuthenticatedModelView(ModelView):
+    can_set_page_size = True
     def is_accessible(self):
-        try:
-            return current_user.admin
-        except:
-            return False
+        return current_user.admin or app.config['DEBUG']
+
+
+class UserView(AuthenticatedModelView):
+    page_size = 1000
+    column_searchable_list = ['username', 'name', 'email']
+    column_filters = ['admin', 'active', 'vip']
+    column_default_sort = 'username'
+    column_editable_list = ['vip', 'active', 'admin', 'email', 'name']
+    inline_models = ['service']
+    form_subdocuments = {
+        'achievements': {
+            # weirdo None field like here
+            # http://flask-admin.readthedocs.io/en/latest/api/mod_contrib_mongoengine/#flask_admin.contrib.mongoengine.ModelView.form_subdocuments
+            'form_subdocuments': {
+                None: {
+                    'form_columns': None,
+                    'form_widget_args': {
+                        'title': {
+                            'rows': 1
+                            },
+                        'key': {
+                            'rows': 1
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+
+class ConsumptionView(AuthenticatedModelView):
+    page_size = 1000
+    column_default_sort = 'date'
+    column_list = ['date', 'user', 'units', 'price_per_unit']
+
+
+class ServiceView(AuthenticatedModelView):
+    column_editable_list = ['service_count', 'date', 'user']
 
 
 admin = Admin(app, name='E5 MoCA DB ADMIN', template_mode='bootstrap3',
               url=app.config['BASEURL'] + '/admin/db')
-
-admin.add_view(AuthenticatedModelView(User))
+admin.add_view(UserView(User))
 admin.add_view(AuthenticatedModelView(Transaction))
-admin.add_view(AuthenticatedModelView(Service))
-admin.add_view(AuthenticatedModelView(Consumption))
+admin.add_view(ServiceView(Service))
+admin.add_view(ConsumptionView(Consumption))
+admin.add_view(AuthenticatedModelView(AchievementDescriptions))
 
 
 class LoginForm(FlaskForm):
@@ -108,12 +148,32 @@ class MailCredentialsForm(FlaskForm):
     password = PasswordField('Password')
 
 
-def mail_available():
-    try:
-        with mail.connect() as _:
-            return True
-    except:
-        return False
+def getMailServer():
+    # dont even try if no username is given
+    if not app.config['MAIL_USERNAME']:
+        return
+
+    # try to get the mail connection from the app context
+    s = getattr(g, '_mailserver', None)
+
+    # establish a new connection if none is available
+    if s is None:
+        try:
+            s = smtplib.SMTP(app.config['MAIL_SERVER'], app.config['MAIL_PORT'])
+            s.starttls()
+            s.login(app.config['MAIL_USERNAME'], app.config['MAIL_PASSWORD'])
+            g._mailserver = s
+        except:
+            flash(f'Could not connect to Mailserver {app.config["MAIL_SERVER"]}.')
+            return
+    else:
+        # test the mail connection
+        try:
+            s.ehlo()
+        except Exception as e:
+            return
+
+    return s
 
 
 def guest_required(f):
@@ -158,31 +218,34 @@ def euros(amount):
 @login_required
 def index():
     coffee_prices = app.config['COFFEE_PRICES']
-    total_consumptions = list(Consumption.objects.aggregate(
+    docs = list(Consumption.objects.aggregate(
         {
             '$group': {
                 '_id': 'total',
                 'total': {'$sum': {'$multiply': ['$units', '$price_per_unit']}},
             }
         }
-    ))[0]['total']
-    total_expenses = list(Transaction.objects(user=None).aggregate(
+    ))
+    total_consumptions = docs[0]['total'] if len(docs) else 0
+    docs = list(Transaction.objects(user=None).aggregate(
         {
             '$group': {
                 '_id': 'total',
                 'total': {'$sum': '$diff'},
             }
         }
-    ))[0]['total']
+    ))
+    total_expenses = docs[0]['total'] if len(docs) else 0
     target_budget = total_consumptions + total_expenses
-    actual_budget = list(Transaction.objects.aggregate(
+    docs = list(Transaction.objects.aggregate(
         {
             '$group': {
                 '_id': 'total',
                 'total': {'$sum': '$diff'},
             }
         }
-    ))[0]['total']
+    ))
+    actual_budget = docs[0]['total'] if len(docs) else 0
 
     return render_template(
         "global.html", current_budget=actual_budget,
@@ -204,57 +267,53 @@ def personal():
                            balance_type=balance_type)
 
 
-@bp.route('/personal_data.json')
+@bp.route('/global_api/<function>/', methods=['GET'])
 @login_required
-def personal_data():
-    user = User.objects.get(username=current_user.username)
-    return jsonify(data=user.consumption_list())
+def global_api(function):
+    if function == 'personal_data':
+        user = User.objects.get(username=current_user.username)
+        return jsonify(data=user.consumption_list())
 
+    if function == 'global_data':
+        # some renaming
+        actual_curve = [
+                dict(date=t['_id'], amount=t['total'])
+                for t in Transaction.dailyTransactions()
+                ]
+        consumption_curve = Consumption.dailyConsumptions()
 
-@bp.route('/global_data.json')
-@login_required
-def global_data():
-    li = [dict(date=str(t.date.date()), amount=t.diff)
-          for t in Transaction.objects.only('date', 'diff').order_by('date')]
-    return jsonify(data=li)
+        expense_curve = Transaction.dailyExpenses()
+        # get all unique dates
+        unique_dates = set([t['_id'] for t in expense_curve]).union(
+                set([t['_id'] for t in consumption_curve ]))
+        target_curve = []
+        for date in unique_dates:
+            amount = (next((x['total'] for x in expense_curve if x['_id'] == date), 0)
+                      + next((x['total'] for x in consumption_curve if x['_id'] == date), 0))
+            target_curve.append(dict(date=date, amount=amount))
+        target_curve = sorted(target_curve, key=lambda x: x['date'])
+        return jsonify(actual_curve=actual_curve, target_curve=target_curve)
+
+    if function == 'consumption_times':
+        """ return a list of consumtion daytimes, in seconds """
+        def getSecondsOfDay(dates):
+            for d in dates:
+                yield d.subtract(years=d.year-1970, months=d.month-1,
+                                 days=d.day-1).timestamp()
+
+        consumptions = Consumption.objects(date__gte=pendulum.now().subtract(days=28))
+        consumptions4Weeks = [pendulum.instance(c.date) for c in consumptions]
+        consumptions1Week = [c for c in consumptions4Weeks if pendulum.now().subtract(days=7) < c]
+        return jsonify(last_four_weeks=list(getSecondsOfDay(consumptions4Weeks)),
+                       last_week=list(getSecondsOfDay(consumptions1Week)))
+
+    return abort(404)
 
 
 def switch_to_user(username):
     user = User.objects.get(username=username)
     logout_user()
     login_user(user, remember=True, force=True)
-
-
-def ldap_login(username, password, remember=False):
-    if app.config['DEBUG'] and not app.config['USE_LDAP']:
-        try:
-            user = User.objects.get(username=username)
-            user.admin = True
-        except:
-            user = User(username=username, name=username, admin=True,
-                        active=True, email='dev@coffee.dev').save()
-            warning = 'User did not exist, admin user created.'
-            flash(warning)
-        login_user(user, remember=remember)
-        return True
-
-    data = ldap_authenticate(username, password)
-    if data:
-        try:
-            user = User.objects.get(username=username)
-        except:
-            user = User(username=username)
-        user.name = str(data[0]['cn'])
-        try:
-            user.email = str(data[0]['mail'])
-        except KeyError:
-            print('A user has no mail entry in LDAP!')
-        user.active = True
-        user.save()
-        login_user(user, remember=remember)
-        return True
-    else:
-        return False
 
 
 @bp.route("/login", methods=['GET', 'POST'])
@@ -264,7 +323,7 @@ def login():
         username = form.username.data
         password = form.password.data
         remember = form.remember.data
-        if not ldap_login(username, password, remember=remember):
+        if not user_login(username, password, remember=remember):
             return '<h1>Login failed</h1>'
         return redirect(url_for('coffee.index'))
     return render_template('login.html', form=form)
@@ -279,7 +338,10 @@ def js_url(script):
 
 @bp.route('/admin/')
 @admin_required
-def admin():
+def admin(foo=True):
+    # append jsdev get argument if in debug mode
+    if app.config['DEBUG'] and not 'jsdev' in request.args.keys():
+        return redirect(url_for('coffee.admin', jsdev=True))
     pform = PaymentForm()
     pform.uid.choices = User.get_uids()
     cform = ConsumptionForm()
@@ -289,12 +351,15 @@ def admin():
         cform.units[-1].label = title
     eform = ExpenseForm()
     mail_form = MailCredentialsForm()
+
+    # try to contact the mailserver and report a successful login
+    mailServer = getMailServer()
     return render_template('admin.html', payment_form=pform,
                            consumption_form=cform, expense_form=eform,
                            mail_form=mail_form,
                            mail_username=app.config['MAIL_USERNAME'] or '',
                            code_url=js_url('admin'),
-                           mail_status=mail_available())
+                           mail_status=mailServer is not None)
 
 
 @bp.route('/admin/api/<function>/', methods=['GET', 'POST'])
@@ -313,15 +378,30 @@ def admin_api(function):
                ]
 
     def next_service_periods():
-        latest_service = pendulum.from_timestamp(Service.objects.order_by('-date')
-                                                 .first().date.timestamp())
-        periods = []
-        for _ in range(8):
-            nmo = latest_service.next(pendulum.MONDAY)
-            nfr = nmo.next(pendulum.FRIDAY)
-            periods.append('%s:%s' %(nmo.to_date_string(), nfr.to_date_string()))
-            latest_service = nfr
-        return periods
+        """ Return a list of date perios where no master service is defined
+        """
+        # get all upcoming services
+        upcomingServices = list(Service.objects.aggregate(
+            {'$match': {
+                'date': {'$gte': pendulum.today()},
+                'master': True,
+                }},
+            {'$group': {
+                '_id': {
+                    '$dateToString': {
+                        # group by Year-Week
+                        'format': '%Y%U', 'date': '$date'}
+                    }
+                }}))
+        # also get upcoming 8 weeks if no service is set for this week
+        upcoming_weeks = []
+        nextMonday = pendulum.today().next(pendulum.MONDAY)
+        for weekDelta in range(8):
+            nextStartDate = nextMonday.add(weeks=weekDelta)
+            if nextStartDate.format('%Y%U') not in [s['_id'] for s in upcomingServices]:
+                nextEndDate = nextStartDate.next(pendulum.FRIDAY)
+                upcoming_weeks.append(f'{nextStartDate.to_date_string()}:{nextEndDate.to_date_string()}')
+        return upcoming_weeks
 
     if function == 'listofshame':
         return jsonify(list=listofshame(), nextServicePeriods=next_service_periods())
@@ -334,6 +414,8 @@ def admin_api(function):
             Service(user=user, date=day).save()
         return jsonify(list=listofshame(), nextServicePeriods=next_service_periods())
 
+    return abort(404)
+
 
 @bp.route("/admin/payment/", methods=['POST'])
 @admin_required
@@ -345,23 +427,26 @@ def submit_payment():
         return redirect(url_for('coffee.admin'))
 
     uid = pform.uid.data
-    amount = float(pform.amount.data) * 100
+    # prevent inaccurate input parsing (see
+    # https://docs.python.org/3.6/tutorial/floatingpoint.html)
+    amount = int(round(float(pform.amount.data) * 100))
     user = User.objects.get(id=uid)
     transaction = Transaction(user=user, diff=amount,
                               description='{} payment from {}'
                               .format(euros(amount), user.name))
     transaction.save()
     if user.email:
-        msg = Message('[Kaffeeministerium] Einzahlung von {}'
-                      .format(euros(amount)))
-        msg.charset = 'utf-8'
-        msg.add_recipient(user.email)
-        msg.body = render_template('mail/payment',
-                                   amount=amount,
-                                   balance=user.balance)
+        msg = EmailMessage()
+        msg['Subject'] = f'[Kaffeeministerium] Einzahlung von {euros(amount)}'
+        msg['From'] = app.config['MAIL_DEFAULT_SENDER']
+        msg['To'] = user.email
+        msg.set_content(render_template(
+            'mail/payment', amount=amount, balance=user.balance,
+            minister_name=app.config['MAIL_MINISTER_NAME']))
         flash('Mail sent to user {}'.format(user.name))
         if not app.config['DEBUG']:
-            mail.send(msg)
+            s = getMailServer()
+            s.send_message(msg)
         else:
             print(u'Sending mail \n{}'.format(msg.as_string()))
 
@@ -387,25 +472,12 @@ def administrate_mail_credentials():
     else:
         app.config['MAIL_USERNAME'] = mform.mail_user.data
         app.config['MAIL_PASSWORD'] = mform.password.data
-        mail.init_app(app)
-        if mail_available():
+        if getMailServer() is not None:
             flash('Mail credentials updated')
         else:
             flash('Mail connection could not be established.')
 
     return redirect(url_for('coffee.admin'))
-
-
-def warning_mail(user):
-    msg = Message(u"[Kaffeeministerium] Geringes Guthaben!")
-    msg.charset = 'utf-8'
-    msg.add_recipient(user.email)
-    msg.body = render_template('mail/lowbudget',
-                               balance=euros(user.balance))
-    if not app.config['DEBUG']:
-        mail.send(msg)
-    else:
-        print(u'Sending mail \n{}'.format(unicode(msg.as_string(), 'utf-8')))
 
 
 @bp.route("/administrate/consumption", methods=['POST'])
@@ -434,18 +506,21 @@ def administrate_consumption():
     balance = user.balance
     if balance < app.config['BUDGET_WARN_BELOW']:
         if user.email:
-            msg = Message(u"[Kaffeeministerium] Geringes Guthaben!")
-            msg.charset = 'utf-8'
-            msg.add_recipient(user.email)
-            msg.body = render_template('mail/lowbudget',
-                                       balance=euros(balance))
+            msg = EmailMessage()
+            msg['Subject'] = f'[Kaffeeministerium] Geringes Guthaben!'
+            msg['From'] = app.config['MAIL_DEFAULT_SENDER']
+            msg['To'] = user.email
+            msg.set_content(render_template('mail/lowbudget',
+                balance=euros(balance), minister_name=app.config['MAIL_MINISTER_NAME']))
             if not app.config['DEBUG']:
-                mail.send(msg)
+                s = getMailServer()
+                s.send_message(msg)
             else:
                 print(u'Sending mail \n{}'.format(msg.as_string()))
             flash('Warning mail sent. Balance is {}'.format(euros(balance)))
         else:
-            flash('Balance is {}. User could not be notified.'.format(euros(balance)))
+            flash(f'Balance is {euros(balance)}. User {user.name} could not be'
+                  ' notified, no mail address available.')
 
     return redirect(url_for('coffee.admin'))
 
@@ -453,6 +528,9 @@ def administrate_consumption():
 @bp.route("/app/", methods=['GET'])
 @guest_required
 def mobile_app():
+    # append jsdev get argument if in debug mode
+    if app.config['DEBUG'] and not 'jsdev' in request.args.keys():
+        return redirect(url_for('coffee.mobile_app', jsdev=True))
     return render_template('app.html', code_url=js_url('app'))
 
 
@@ -467,12 +545,23 @@ def api(function):
         today = pendulum.today(app.config['TZ'])
         users = []
         for user in User.objects(active=True).order_by('-vip', 'name'):
+            # build user dictionary manually
             user_dict = {
                 'name': user.name,
                 'username': user.username,
                 'id': str(user.id),
-                'consume': []
+                'consume': [],
+                # fill in all of todays achievements
+                'achievements': [{
+                    'key': a.key,
+                    'date': a.date,
+                    }
+                    for a in user.achievements
+                    if a.date > pendulum.today()]
             }
+            # perform a query for todays consumptions for each user
+            # @TODO: try to move this to the mongo query... instead of hitting
+            # the DB n + 1 times.
             for consume in Consumption.objects(user=user, date__gte=today):
                 if consume.price_per_unit in prices:
                     user_dict['consume'].extend(
@@ -483,11 +572,16 @@ def api(function):
 
     def get_service():
         current_service = Service.current()
+        last_cleaned = (
+                Service
+                .objects(master=True, cleaned=True)
+                .order_by('-date')
+                .first()
+                )
         service = {
             'uid': str(current_service.user.id),
-            'cleaned': current_service.cleaned,
-            'cleaningProgram': current_service.cleaning_program,
-            'decalcifyProgram': current_service.decalcify_program,
+            'last_cleaned': last_cleaned.date if last_cleaned else 'Never',
+            'upcoming': [dict(week=s['_id'], user=str(s['user'])) for s in Service.upcoming()]
         } if current_service else None
         return service
 
@@ -533,11 +627,13 @@ def administrate_expenses():
         return redirect(url_for('coffee.admin'))
 
     description = eform.description.data
-    amount = eform.amount.data
+    # prevent inaccurate input parsing (see
+    # https://docs.python.org/3.6/tutorial/floatingpoint.html)
+    amount = int(round(float(eform.amount.data * 100)))
     date = (eform.date.data
             if eform.date.data != ''
             else datetime.utcnow())
-    t = Transaction(diff=100 * amount, date=date, description=description)
+    t = Transaction(diff=amount, date=date, description=description)
     t.save()
     flash('Transaction stored.')
     return redirect(url_for('coffee.admin'))
@@ -547,26 +643,6 @@ def administrate_expenses():
 def logout():
     logout_user()
     return redirect(url_for('coffee.login'))
-
-
-def ldap_authenticate(username, password):
-    # the guest user is special
-    assert(username != 'guest')
-    try:
-        ldap_server = Server(app.config['LDAP_HOST'], port=app.config['LDAP_PORT'])
-        base_dn = app.config['LDAP_SEARCH_BASE']
-        ldap_conn = Connection(ldap_server,
-                               "uid={},{}".format(username, base_dn),
-                               password,
-                               auto_bind=True)
-        if ldap_conn.search(base_dn,
-                            '(&(objectclass=person)(uid={}))'.format(username),
-                            attributes=['mail', 'cn']):
-            return ldap_conn.entries
-    except:
-        pass
-
-    return None
 
 
 login_manager.login_view = 'login'
