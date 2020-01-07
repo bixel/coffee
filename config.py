@@ -19,7 +19,7 @@ LDAP_SEARCH_BASE = os.environ.get('LDAP_SEARCH_BASE', 'ou=people,dc=coffee,dc=ld
 LDAP_SEARCH_BIND = os.environ.get('LDAP_SEARCH_BIND')
 LDAP_SEARCH_PASSWORD = os.environ.get('LDAP_SEARCH_PASSWORD')
 LDAP_PORT = os.environ.get('LDAP_PORT', 389)
-LDAP_TLS = os.environ.get('LDAP_TLS', 'true').lower() == 'true'
+LDAP_TLS = os.environ.get('LDAP_TLS', 'false').lower() == 'true'
 
 SERVER = os.environ.get('SERVER', 'localhost')
 PORT = os.environ.get('PORT', 5000)
