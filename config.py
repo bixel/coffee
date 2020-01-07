@@ -5,8 +5,8 @@ DEBUG = os.environ.get("DEBUG", 'False').lower() == 'true'
 USE_LDAP = os.environ.get("LDAP", 'True').lower() == 'true'
 SECRET_KEY = os.environ.get('SECRET_KEY')
 COFFEE_PRICES = [
-    [30, u'Kaffee'],
-    [50, u'Milchkaffee']
+    [30, u'Coffee'],
+    [50, u'Coffee with milk']
 ]
 
 MONGODB_DB = os.environ.get('DB_NAME', 'coffeedb')

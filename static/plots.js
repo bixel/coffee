@@ -12,12 +12,12 @@ function plotCoffeeCurve(response){
     var targetTrace = getTrace(response.target_curve);
     targetTrace.name = 'Soll';
     var layout = {
-      title: 'Kaffeekasse',
+      title: 'MOCA Account Balance',
       xaxis: {
-        title: 'Datum',
+        title: 'Date',
       },
       yaxis: {
-        title: 'Kassenstand / €',
+        title: 'Account Balance / €',
       },
       legend: {
         x: 0,
@@ -35,7 +35,7 @@ function plotPopularTimes(response){
     type: "histogram",
     // transform to correct timezone
     x: response.last_four_weeks.map(t => t * 1000 - 3600 * 1000),
-    name: 'Letzte vier Wochen',
+    name: 'Last four weeks',
     opacity: 0.8,
     xbins: {
       start: 6 * 3600 * 1000,
@@ -47,7 +47,7 @@ function plotPopularTimes(response){
     type: "histogram",
     // transform to correct timezone
     x: response.last_week.map(t => t * 1000 - 3600 * 1000),
-    name: 'Letzte Woche',
+    name: 'Last week',
     opacity: 0.4,
     xbins: {
       start: 6 * 3600 * 1000,
@@ -56,16 +56,16 @@ function plotPopularTimes(response){
     },
   };
   var layout = {
-    title: 'Beliebte Zeiten',
+    title: 'Popular times',
     xaxis: {
       // autorange: false,
       // range: [6 * 3600, 20 * 3600],
-      title: 'Tageszeit / Stunden',
+      title: 'Time of day / Hours',
       type: 'date',
       tickformat: '%H:%M',
     },
     yaxis: {
-      title: 'Kaffee-Dichte / 30 Minuten',
+      title: 'Coffee-density / 30 minutes',
     },
     barmode: 'overlay',
     showlegend: true,
