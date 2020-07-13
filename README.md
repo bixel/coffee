@@ -31,11 +31,11 @@ and `CTRL-C` two times to stop all processes.
 Consider creating a [virtual environment with
 pipenv](https://github.com/pypa/pipenv) and install all dependencies:
 ```
-pipenv install
+poetry install
 ```
 Activate the environment after that via
 ```
-pipenv shell
+poetry shell
 ```
 The main service is provided with the flask app within `coffee.py`.
 Run the coffee-app by running

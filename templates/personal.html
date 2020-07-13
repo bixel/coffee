@@ -3,7 +3,7 @@
 
 <h2>Coffee History <small>{{ user.name }}</small></h2>
 <div class="row">
-  <div class="col-sm-8">
+  <div class="col-sm-7">
     <table class="table">
     <tr>
       <td>Current balance</td>
@@ -16,7 +16,15 @@
     </table>
     <div id="personal_graph"></div>
   </div>
-  <div class="col-sm-4">
+  <div class="col-sm-5">
+    {% if user.achievements %}
+    <h2>{{ user.achievements|length }} Achievements</h2>
+    {% for a in user.achievements %}
+    <ul>
+      <li>{{ a.date.strftime('%d.%m.%Y %H:%M') }}: <b>{{ a.title }}</b><br />{{ a.description }}</li>
+    </ul>
+    {% endfor %}
+    {% endif %}
     <h2>Transactions</h2>
     <div id="personal_table"></div>
   </div>

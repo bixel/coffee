@@ -27,7 +27,11 @@ const config = {
               '@babel/preset-env',
               '@babel/preset-react',
             ],
-            plugins: ['@babel/plugin-proposal-object-rest-spread']
+            plugins: [
+              '@babel/proposal-object-rest-spread',
+              '@babel/plugin-syntax-dynamic-import',
+              '@babel/proposal-class-properties',
+            ]
           }
         }
       },
