@@ -14,23 +14,27 @@ def get_kwargs_for_key(key):
         return {
             'title': description.title,
             'description': random.choice(description.descriptions),
-            'validUntil': pendulum.now().add(days=description.validDays)
+            'validUntil': pendulum.now().add(days=description.validDays),
+            'key': key,
             }
     except IndexError as e:
         flash(f'Warning: the description pool for \'{key}\' is empty. ({e}).')
         print(e)
         return {
-            'title': 'Achievement',
+            'title': f'A poor title for {key}',
             'description': 'Great! You\'ve got an achievement but the devs were'
                 'too lazy to think of a funny description...',
+            'key': key,
             }
     except AttributeError as e:
         flash(f'Warning: no description pool for \'{key}\' available. Please'
               ' add some descriptions in the database')
         print(e)
         return {
-            'title': 'Achievement',
-            'description': 'Either you have a new achievement or there was a bug',
+            'title': f'A poor title for {key}',
+            'description': 'Either you have a new achievement or there was a bug. '
+                f'Anyway, you\'ve unlocked {key}, yay!',
+            'key': key,
             }
 
 
@@ -41,7 +45,7 @@ def FirstCoffeeOfTheDay(consumption):
     # first, get the date of the last coffee
     last_day = Consumption.objects.order_by('-date').first().date.date()
     if consumption.date.date() > last_day:
-        new = Achievement(**get_kwargs_for_key(key), key=key)
+        new = Achievement(**get_kwargs_for_key(key))
         consumption.user.achievements.append(new)
         consumption.user.save()
 
@@ -57,7 +61,7 @@ def SymmetricCoffee(consumption):
             + [consumption.price_per_unit]
             )
     if todays_coffees == [p1, p2, p1, p1, p2, p1]:
-        new = Achievement(**get_kwargs_for_key(key), key=key)
+        new = Achievement(**get_kwargs_for_key(key))
         consumption.user.achievements.append(new)
         consumption.user.save()
 
@@ -103,7 +107,7 @@ def Minimalist(consumption):
         if consumption_to_check.price_per_unit != p1:
             return
 
-    new = Achievement(**get_kwargs_for_key(key), key=key)
+    new = Achievement(**get_kwargs_for_key(key))
     consumption.user.achievements.append(new)
     consumption.user.save()
 
@@ -123,7 +127,7 @@ def stalker(consumption, target_username, key, min_consumptions=5):
         and all([t.date < u.date.replace(tzinfo=t.date.tzinfo) for t, u in zip(
             todays_target_consumptions, todays_user_consumptions)])  # alternating
         ):
-        new = Achievement(**get_kwargs_for_key(key), key=key)
+        new = Achievement(**get_kwargs_for_key(key))
         consumption.user.achievements.append(new)
         consumption.user.save()
 
