@@ -6,8 +6,8 @@ JSDEV = os.environ.get('JSDEV', 'False').lower() == 'true'
 USE_LDAP = os.environ.get("LDAP", 'True').lower() == 'true'
 SECRET_KEY = os.environ.get('SECRET_KEY')
 COFFEE_PRICES = [
-    [30, u'Kaffee'],
-    [50, u'Milchkaffee']
+    [30, u'Coffee'],
+    [50, u'Coffee with milk']
 ]
 
 MONGODB_DB = os.environ.get('DB_NAME', 'coffeedb')
@@ -20,7 +20,7 @@ LDAP_SEARCH_BASE = os.environ.get('LDAP_SEARCH_BASE', 'ou=people,dc=coffee,dc=ld
 LDAP_SEARCH_BIND = os.environ.get('LDAP_SEARCH_BIND')
 LDAP_SEARCH_PASSWORD = os.environ.get('LDAP_SEARCH_PASSWORD')
 LDAP_PORT = os.environ.get('LDAP_PORT', 389)
-LDAP_TLS = os.environ.get('LDAP_TLS', 'true').lower() == 'true'
+LDAP_TLS = os.environ.get('LDAP_TLS', 'false').lower() == 'true'
 
 SERVER = os.environ.get('SERVER', 'localhost')
 PORT = os.environ.get('PORT', 5000)

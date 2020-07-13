@@ -13,8 +13,12 @@ development server running. You will need
 - docker (`brew cask install docker`)
 - node (`brew install node`)
 - ldap client (usually available on osx anyway)
+It might by neccessary to install webpack via npm:
+```
+npm install --no-optional webpack --save-dev
+```
 
-before you
+Before you
 ```
 source start-dev.sh
 ```
@@ -25,6 +29,10 @@ hit
 fg
 ```
 and `CTRL-C` two times to stop all processes.
+Before starting the coffee service for debugging purposes, set a secret key via
+```
+export SECRET_KEY=<some_secret>
+```
 
 ### python requirements
 
@@ -40,7 +48,7 @@ poetry shell
 The main service is provided with the flask app within `coffee.py`.
 Run the coffee-app by running
 ```
-COFFEE_DEBUG=True FLASK_ENV=development FLASK_APP=coffe.py flask run
+COFFEE_DEBUG=True FLASK_ENV=development FLASK_APP=coffee.py flask run
 ```
 
 ### database and ldap
@@ -78,7 +86,7 @@ docker run --name coffee-ldap -d -p 389:389 -e SLAPD_PASSWORD=password -e SLAPD_
 
 If this is set up, you can add some dummy users with password "foobar"
 ```
-ldapadd -x -D cn=admin,dc=coffee,dc=ldap -w password -f ./ldap_test_data.ldif
+ldapadd -x -D cn=admin,dc=coffee,dc=ldap -w password -f ./testing/ldap_test_data.ldif
 ```
 
 Thanks to user @dinkel for contributing the openldap image.
