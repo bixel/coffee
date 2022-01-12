@@ -7,17 +7,17 @@ import Carousel from './Carousel.js';
 import config from './config.js';
 
 export default class List extends Component {
-  constructor(props, context){
+  constructor(props, context) {
     super(props, context);
     this.state = {
       products: {
         Kaffee: {
           name: "Kaffee",
-          icon: "https://image.flaticon.com/icons/svg/190/190883.svg"
+          icon: "https://cdn.svgapi.com/vector/64654/espresso.svg"
         },
         Milchkaffee: {
           name: "Milchkaffee",
-          icon: "https://image.flaticon.com/icons/svg/190/190880.svg"
+          icon: "https://cdn.svgapi.com/vector/64679/cappuccino.svg"
         },
       },
       users: [],
@@ -26,7 +26,7 @@ export default class List extends Component {
     this.url = window.location.origin + window.location.pathname;
   }
 
-  componentDidMount(){
+  componentDidMount() {
     // get the initial app state immediately
     $.get(this.url + 'api/user_list/', data => this.updateAppState(data));
 
@@ -37,7 +37,7 @@ export default class List extends Component {
   }
 
   /* @TODO this should be moved into the service button */
-  sendService(service){
+  sendService(service) {
     let _this = this;
     $.post({
       url: config.BASEURL + 'api/finish_service/',
@@ -54,11 +54,11 @@ export default class List extends Component {
 
   /* pass this function down to all elements who want to update the app state
    */
-  updateAppState(data){
+  updateAppState(data) {
     this.setState(data);
 
     // WARNING: This code is duplicated from the "global.html" template
-    Plotly.d3.json(config.BASEURL.replace('app/', '') + 'global_api/consumption_times/', function(err, response){
+    Plotly.d3.json(config.BASEURL.replace('app/', '') + 'global_api/consumption_times/', function (err, response) {
       var {
         traces,
         layout
@@ -67,7 +67,7 @@ export default class List extends Component {
     });
 
     // WARNING: This code is duplicated from the "global.html" template
-    Plotly.d3.json(config.BASEURL.replace('app/', '') + 'global_api/global_data/', function(err, response){
+    Plotly.d3.json(config.BASEURL.replace('app/', '') + 'global_api/global_data/', function (err, response) {
       var {
         traces,
         layout,
@@ -76,7 +76,7 @@ export default class List extends Component {
     });
   }
 
-  render(){
+  render() {
     // store the guest user for later modifications
     let guestUser = undefined;
     let backgroundIt = 0;
@@ -85,7 +85,7 @@ export default class List extends Component {
       background = backgroundIt++ % 2 ? "#F8F8F8" : "";
 
       // dont show the guest user for now
-      if(user.username === 'guest'){
+      if (user.username === 'guest') {
         backgroundIt++;
         guestUser = user;
         return undefined;
@@ -102,7 +102,7 @@ export default class List extends Component {
         updateAppState={data => this.updateAppState(data)}
       />
     })
-    if(guestUser){
+    if (guestUser) {
       rows.push(<Row
         products={this.state.products}
         name={guestUser.name}
@@ -112,12 +112,12 @@ export default class List extends Component {
         achievements={[]}
         style={{background: background, padding: "4px"}}
         updateAppState={data => this.updateAppState(data)}
-        />)
+      />)
     }
     let alert = '';
-    if(this.state.alert){
+    if (this.state.alert) {
       alert = <Alert type={this.state.alert.type}>{this.state.alert.text}</Alert>;
-      setTimeout(() => this.setState({ alert: undefined, }), 5000);
+      setTimeout(() => this.setState({alert: undefined, }), 5000);
     };
     return <div className="container" style={{margin: 0, maxWidth: "100%"}}>
       <div className="row"><div className="col-xs-12">
@@ -130,7 +130,7 @@ export default class List extends Component {
         users={this.state.users}
         updateAppState={data => this.updateAppState(data)}
         sendService={this.sendService}
-        />
+      />
     </div>
   }
 }
