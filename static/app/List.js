@@ -13,11 +13,11 @@ export default class List extends Component {
       products: {
         Kaffee: {
           name: "Kaffee",
-          icon: "https://image.flaticon.com/icons/svg/190/190883.svg"
+          icon: "https://cdn.svgapi.com/vector/64654/espresso.svg"
         },
         Milchkaffee: {
           name: "Milchkaffee",
-          icon: "https://image.flaticon.com/icons/svg/190/190880.svg"
+          icon: "https://cdn.svgapi.com/vector/64679/cappuccino.svg"
         },
       },
       users: [],
