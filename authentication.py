@@ -82,6 +82,7 @@ def ldap_login(username, password, remember=False):
     except IndexError:
         # search didnt return anything
         return False
+
     data = ldap_authenticate(user_dn, username, password)
     if data:
         username = data[0]['uid'][0]
