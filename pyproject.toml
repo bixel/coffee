@@ -6,17 +6,17 @@ authors = ["Kevin Heinicke <kevin@kehei.de>"]
 
 [tool.poetry.dependencies]
 python = "^3.7"
-mongoengine = "^0.19.1"
-flask-mongoengine = "^0.9.5"
-ldap3 = "^2.6.1"
-pendulum = "^2.0.5"
-flask = "^1.1.1"
-flask-admin = "^1.5.5"
-flask-login = "^0.5.0"
+mongoengine = "^0.24"
+flask-mongoengine = "^1.0"
+ldap3 = "^2.9"
+pendulum = "^2.1"
+flask = "^2.1"
+flask-admin = "^1.6"
+flask-login = "^0.6.0"
 
 [tool.poetry.dev-dependencies]
-coverage = "^5.0.3"
+coverage = "^6"
 
 [build-system]
-requires = ["poetry>=0.12"]
-build-backend = "poetry.masonry.api"
+requires = ["poetry_core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

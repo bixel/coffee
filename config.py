@@ -1,5 +1,4 @@
 import os
-import sys
 
 DEBUG = os.environ.get("DEBUG", 'False').lower() == 'true'
 JSDEV = os.environ.get('JSDEV', 'False').lower() == 'true'
