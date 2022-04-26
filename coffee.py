@@ -1,22 +1,18 @@
 from functools import wraps
 
-from datetime import datetime, timedelta
+from datetime import datetime
 import pendulum
-from wtforms import (StringField,
-                     PasswordField,
-                     BooleanField,
-                     IntegerField,
-                     DecimalField,
-                     HiddenField,
-                     FieldList,
-                     FormField,
-                     SelectField,
-                     validators,
-                     TextField)
-from wtforms import Form as NoCsrfForm
-from wtforms.fields.html5 import DateField
-
-from jinja2 import evalcontextfilter
+from wtforms import (
+    StringField,
+    PasswordField,
+    BooleanField,
+    IntegerField,
+    DecimalField,
+    FieldList,
+    SelectField,
+    validators,
+    DateField,
+)
 
 from flask import (Flask,
                    render_template,
@@ -138,13 +134,13 @@ class ConsumptionForm(FlaskForm):
 
 
 class ExpenseForm(FlaskForm):
-    description = TextField('Description')
+    description = StringField('Description')
     amount = FlexibleDecimalField('Amount')
     date = DateField('Date', default=datetime.utcnow)
 
 
 class MailCredentialsForm(FlaskForm):
-    mail_user = TextField('MailUser')
+    mail_user = StringField('MailUser')
     password = PasswordField('Password')
 
 
