@@ -3,7 +3,6 @@ from ldap3 import (
         AUTO_BIND_NO_TLS,
         )
 from ldap3.core.exceptions import LDAPBindError
-from ldap3.extend.standard.whoAmI import WhoAmI
 import config
 from database import User
 from flask_login import login_user
