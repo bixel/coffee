@@ -7,14 +7,15 @@ RUN apt-get update \
 ADD package.json package-lock.json pyproject.toml poetry.lock \
     webpack.config.js /coffee/
 
-ADD templates /coffee/templates
-ADD static /coffee/static
-
 WORKDIR coffee
 
+RUN npm install
 RUN python3 -m pip install poetry
 RUN poetry install
-RUN npm install && npm run build
+
+ADD templates /coffee/templates
+ADD static /coffee/static
+RUN npm run build
 
 ADD achievements.py authentication.py coffee.py config.py database.py /coffee/
 
