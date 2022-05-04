@@ -14,23 +14,25 @@ from wtforms import (
     DateField,
 )
 
-from flask import (Flask,
-                   render_template,
-                   redirect,
-                   g,
-                   url_for,
-                   request,
-                   send_from_directory,
-                   flash,
-                   jsonify,
-                   Blueprint,
-                   session,
-                   abort)
-from flask_login import (LoginManager,
-                         login_user,
-                         logout_user,
-                         current_user,
-                         login_required)
+from flask import (
+    Flask,
+    render_template,
+    redirect,
+    g,
+    url_for,
+    request,
+    flash,
+    jsonify,
+    Blueprint,
+    abort,
+)
+from flask_login import (
+    LoginManager,
+    login_user,
+    logout_user,
+    current_user,
+    login_required,
+)
 from flask_wtf import FlaskForm
 from flask_admin import Admin
 from flask_admin.contrib.mongoengine import ModelView
@@ -41,7 +43,6 @@ from email.message import EmailMessage
 
 from database import User, Transaction, Service, Consumption, AchievementDescriptions
 from authentication import user_login
-import achievements
 
 app = Flask(__name__)
 app.config.from_object('config')
@@ -101,8 +102,12 @@ class ServiceView(AuthenticatedModelView):
     column_editable_list = ['service_count', 'date', 'user']
 
 
-admin = Admin(app, name='E5 MoCA DB ADMIN', template_mode='bootstrap3',
-              url=app.config['BASEURL'] + '/admin/db')
+admin = Admin(
+    app,
+    name='E5 MoCA DB ADMIN',
+    template_mode='bootstrap3',
+    url=app.config['BASEURL'] + '/admin/db',
+)
 admin.add_view(UserView(User))
 admin.add_view(AuthenticatedModelView(Transaction))
 admin.add_view(ServiceView(Service))

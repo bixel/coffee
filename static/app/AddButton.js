@@ -2,9 +2,9 @@ import React, {Component} from 'react';
 import { Icon } from './Icon.js';
 import config from './config.js';
 
-const successIconLink = {icon: "https://image.flaticon.com/icons/svg/148/148767.svg",
+const successIconLink = {icon: "https://cdn.svgapi.com/vector/240078/success.svg",
                          name: "Success"};
-const errorIconLink = {icon: "https://image.flaticon.com/icons/svg/148/148766.svg",
+const errorIconLink = {icon: "https://cdn.svgapi.com/vector/246534/error.svg",
                        name: "Error"};
 const styles = {
   addButtonNormal: {

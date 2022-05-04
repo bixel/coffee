@@ -1,14 +1,14 @@
-from mongoengine import (connect,
-                         Document,
-                         EmbeddedDocument,
-                         StringField,
-                         BooleanField,
-                         DateTimeField,
-                         ReferenceField,
-                         IntField,
-                         ListField,
-                         EmbeddedDocumentField,
-                         )
+from mongoengine import (
+    Document,
+    EmbeddedDocument,
+    StringField,
+    BooleanField,
+    DateTimeField,
+    ReferenceField,
+    IntField,
+    ListField,
+    EmbeddedDocumentField,
+)
 from math import exp
 import pendulum
 from flask import flash

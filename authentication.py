@@ -3,7 +3,6 @@ from ldap3 import (
         AUTO_BIND_NO_TLS,
         )
 from ldap3.core.exceptions import LDAPBindError
-from ldap3.extend.standard.whoAmI import WhoAmI
 import config
 from database import User
 from flask_login import login_user
@@ -82,6 +81,7 @@ def ldap_login(username, password, remember=False):
     except IndexError:
         # search didnt return anything
         return False
+
     data = ldap_authenticate(user_dn, username, password)
     if data:
         username = data[0]['uid'][0]
